@@ -12,7 +12,9 @@
     * 최적 제어를 위해서는 먼저 대상 웹 페이지에 접속해야 함.
     * requests 기반으로 웹페이지에 로그인 후 실내기의 작동 신호(ON, OFF)를 수행함.
     * pause.until()을 사용하여 target_time이 될 때 까지 대기하고 있다가 최적 시간이 되면 작동 신호를 생성함.
+    * identification.json과 mappting.json 파일에서 제어 대상의 매핑 정보를 호출하여 제어함.
 
 ### 3. Optimal method
     * 예측 시간을 예측하는 방법은 세분화 될 수 있음. (e.g. 기울기 조정)
     * 이 부분은 다음 Commit에 업데이트가 될 예정임.
+    
