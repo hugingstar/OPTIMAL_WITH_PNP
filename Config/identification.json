@@ -1,6 +1,6 @@
 {
-  "login_url" : "https://168.131.141.115/api/login",
-  "control_url" : "https://168.131.141.115/dms/devices/multiControl/",
-  "id" : "blab419",
-  "password" : "419lab@@"
+  "login_url" : "/login",
+  "control_url" : "multiControl/",
+  "id" : "input id",
+  "password" : "password"
 }
