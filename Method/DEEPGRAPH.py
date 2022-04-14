@@ -8,10 +8,10 @@ from tensorflow.python.ops import variable_scope, array_ops
 from tensorflow.python.framework import dtypes
 import copy
 
-# gpu %
+# gpu 사용하기
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
 sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-# # cpu만 사용
+# cpu만 사용하기
 # os.environ["CUDA_VISIBLE_DEVICES"]="-1"
 
 class DEEPMODEL():
