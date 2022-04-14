@@ -161,7 +161,7 @@ class DEEPMODEL():
                     outputs = []
                     prev = None
                     for i, inp in enumerate(decoder_inputs):
-                        print(inp)
+                        # print(inp)
                         if loop_function is not None and prev is not None:
                             with variable_scope.variable_scope("loop_function", reuse=True):
                                 inp = loop_function(prev, i)
@@ -220,9 +220,10 @@ class DEEPMODEL():
                 optimizer='Adam',
                 clip_gradients=self.GRADIENT_CLIPPING)
 
-        saver = tf.compat.v1.train.Saver()
+        saver = tf.compat.v1.train.Saver
         print("[Build Graph Return]{}".format(dict(enc_inp=enc_inp, target_seq=target_seq, train_op=optimizer,
                     loss=loss, saver=saver, reshaped_outputs=reshaped_outputs)))
+
         return dict(enc_inp=enc_inp, target_seq=target_seq, train_op=optimizer,
                     loss=loss, saver=saver, reshaped_outputs=reshaped_outputs)
 
@@ -449,25 +450,26 @@ class DEEPMODEL():
             #                                    input_seq_len=self.INPUT_SEQ_LEN,
             #                                    output_seq_len=self.OUTPUT_SEQ_LEN,
             #                                    batch_size=self.BATCH_SIZE)
+
+            #
+            test_x, test_y = self.generate_test_samples(x=X_test, y=y_test,
+                                                        input_seq_len=self.INPUT_SEQ_LEN,
+                                                        output_seq_len=self.OUTPUT_SEQ_LEN)
+
+            # Train 데이터 사용하여 테스트용으로 한번더 할 때 사용
             # train_x, train_y = self.generate_test_samples(x=X_train, y=y_train,
             #                                               input_seq_len=self.INPUT_SEQ_LEN,
             #                                               output_seq_len=self.OUTPUT_SEQ_LEN)
-            # test_x, test_y = self.generate_test_samples(x=X_test, y=y_test,
-            #                                             input_seq_len=self.INPUT_SEQ_LEN,
-            #                                             output_seq_len=self.OUTPUT_SEQ_LEN)
 
             #Build graph
             rnn_model = self.build_graph(INPUT_DIM=int(X_train.shape[1]), OUTPUT_DIM=int(y_train.shape[1]))
-            saver = tf.compat.v1.train.Saver()
             self.TRAIN_PROCESS(rnn_model=rnn_model, X_train=X_train, y_train=y_train, save=save, out_unit=out_unit, iterNum=i) #save : 저장경로
 
             test_model = self.build_graph(INPUT_DIM=int(X_test.shape[1]), OUTPUT_DIM=int(y_test.shape[1]))
-            saver = tf.compat.v1.train.Saver()
-            self.TEST_PROCESS(test_model=test_model, X_test=X_test, y_test=y_test, save=save, out_unit=out_unit, iterNum=i)
+            self.TEST_PROCESS(test_model=test_model, X_test=test_x, y_test=test_y, save=save, out_unit=out_unit, iterNum=i)
 
 
     def TRAIN_PROCESS(self, rnn_model, X_train, y_train, out_unit, save, iterNum):
-            saver = tf.compat.v1.train.Saver()
             init = tf.compat.v1.global_variables_initializer()
             loss_fun = []
             with tf.compat.v1.Session() as sess:
