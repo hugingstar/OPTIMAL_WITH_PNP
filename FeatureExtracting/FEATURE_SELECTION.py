@@ -7,7 +7,7 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 import os
 import numpy as np
-from sklearn.metrics import mean_squared_error
+
 
 
 class ENSEMBLE():
@@ -133,8 +133,6 @@ class ENSEMBLE():
                     # self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.zone_temp)] = e_o
                     # self.data.at[self.data.index[o], "{}_and_zone_difference".format(self.zone_temp)] = f_o
                     self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.set_temp)] = g_o
-
-
                 elif (a_o != 0) and (b_o != 0):
                     num += 1
                     self.data.at[self.data.index[o], "{}_duration".format(self.onoffsignal)] = num
@@ -193,7 +191,6 @@ class ENSEMBLE():
             self.features = list(self.data.columns.difference([self.target]))
 
             #그냥 제외할 것 없애기(if문문)
-
             X = self.data[self.data.columns.difference([self.target])]
             y = self.data[self.target] # 타겟컬럼
 
@@ -207,6 +204,7 @@ class ENSEMBLE():
             self.y_train.to_csv("{}/y_train_Outdoor_{}_Indoor_{}.csv".format(save_rdf, out_unit, i))
             self.y_test.to_csv("{}/y_test_Outdoor_{}_Indoor_{}.csv".format(save_rdf, out_unit, i))
 
+            # 어떤 방법을 사용한 분류기를 forestfksms 변수에 저장
             if self.method  == "Randomforest":
                 forest = RandomForestClassifier(criterion='entropy', max_depth=self.MAX_DEPTH,
                                                 n_estimators=self.N_ESTIMATION, n_jobs=self.N_JOBS,
@@ -226,9 +224,7 @@ class ENSEMBLE():
 
             try:
                 forest.fit(self.X_train, self.y_train)
-                self.pred = forest.predict(self.X_test)
-                rmse = self.RMSE(self.y_test, self.pred)
-                print("[RMSE] {} - [Train accuracy] : {} - [Test accuracy] : {}".format(round(rmse, 3), round(forest.score(self.X_train, self.y_train),3),
+                print("[Train accuracy] : {} - [Test accuracy] : {}".format(round(forest.score(self.X_train, self.y_train),3),
                                                                         round(forest.score(self.X_test, self.y_test),3)))
 
                 acc = pd.DataFrame(columns=['Train_accuracy','Test_accuracy'])
@@ -254,6 +250,7 @@ class ENSEMBLE():
                 acc.to_csv("{}/Acc_Outdoor_{}_Indoor_{}.csv".format(save_rdf, out_unit, i))
                 self.imp_list = np.multiply(self.imp_list, 0)
 
+
             dxf = pd.Series(self.imp_list, index=self.features).sort_values(ascending=False)
 
             plt.rcParams["font.family"] = "Times New Roman"
@@ -271,13 +268,8 @@ class ENSEMBLE():
             plt.yticks(size=float(ftsize * 2))
             plt.title("Prediction Target :\n{}\n(Method : {} / Train : {} % / Test : {} %)".format(self.target, self.method, trA_, tesA_), fontsize=float(ftsize*3.5))
             plt.tight_layout()
-            plt.savefig("{}/FIGIMP_Outdoor_{}_Indoor_{}_Batch_{}.png".format(save_rdf, out_unit, i, self.BATCH_SIZE))
+            plt.savefig("{}/FIGIMP_Outdoor_{}_Indoor_{}_PREDMIN_{}.png".format(save_rdf, out_unit, i, self.PREDMIN))
             plt.clf()
-
-            return { 'loss' : rmse } # 'status': STATUS_OK, 'model': forest}
-
-    def RMSE(self, y_test, pred ):
-        return np.sqrt(mean_squared_error(y_test, pred))
 
     def create_folder(self, directory):
         try:
@@ -295,32 +287,28 @@ TARGET = "room_temp" #타켓 컬럼"Duration" #"relative_capa_code"
 TRAIN_SIZE = 0.7
 N_ESTIMATION = 1000
 GRAD_CLIP = 2.5
-BATCH_SIZE = [500]
+BATCH_SIZE = 500
 LEARNING_RATE = 0.01
-MAX_DEPTH = 9
+MAX_DEPTH = 10
 MAX_FEATURES = 5
-MAX_LEAF_NODES = 10
+MAX_LEAF_NODES = 20
 RANDOM_STATE = 0
 N_JOBS = -1
-
-reg_candidate = [1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1, 5, 10, 100]
-
-
 
 SIGNAL = 'indoor_power' # 실내기 파워 온/오프
 meterValue = 'value' # 미터기 값
 TspValue = 'set_temp' # 설정 온도
 TzValue =  'room_temp' # 방 온도
 ToaValue = 'outdoor_temp' # 외기 온도도
-PREDMIN = 60
-METHOD = "Randomforest" #Randomforest, Adaboosting, Gradientboosting, Decisiontree
+PREDMIN = [10, 30, 60]
+METHOD = "Gradientboosting" #Randomforest, Adaboosting, Gradientboosting, Decisiontree
 
-for j in BATCH_SIZE:
+for j in PREDMIN:
     ens = ENSEMBLE(time=time, TRAIN_SIZE=TRAIN_SIZE, N_ESTIMATION=N_ESTIMATION,
-                   GRAD_CLIP=GRAD_CLIP, BATCH_SIZE=j,
+                   GRAD_CLIP=GRAD_CLIP, BATCH_SIZE=BATCH_SIZE,
                    LEARNING_RATE=LEARNING_RATE, MAX_DEPTH=MAX_DEPTH, MAX_FEATURES=MAX_FEATURES,
                    MAX_LEAF_NODES=MAX_LEAF_NODES, N_JOBS=N_JOBS, RANDOM_STATE=RANDOM_STATE,
-                   start=start, end=end, PREDMIN = PREDMIN)
+                   start=start, end=end, PREDMIN = j)
     for i in [909]: #, 910, 921, 920, 919, 917, 918, 911]:
         ens.CLASSIFIER(out_unit=i, signal=SIGNAL, target=TARGET,
                        meterValue=meterValue, TspValue=TspValue, TzValue=TzValue,

@@ -8,6 +8,12 @@ from tensorflow.python.ops import variable_scope, array_ops
 from tensorflow.python.framework import dtypes
 import copy
 
+# gpu %
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
+sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+# # cpu만 사용
+# os.environ["CUDA_VISIBLE_DEVICES"]="-1"
+
 class DEEPMODEL():
     def __init__(self, time, LEARNING_RATE, LAMBDA_L2_REG, INPUT_SEQ_LEN, OUTPUT_SEQ_LEN, BATCH_SIZE,
                  NUM_STACK_LAYERS, HIDDEN_DIM, GRADIENT_CLIPPING, KEEP_RATE, TOTAL_ITERATION,
@@ -95,10 +101,9 @@ class DEEPMODEL():
         return input_seq, output_seq
 
     def build_graph(self, INPUT_DIM, OUTPUT_DIM):
-        print("Start build graph :build_graph")
-
-        self.INPUT_DIM =INPUT_DIM
-        self.OUTPUT_DIM =OUTPUT_DIM
+        print("[Build Graph] Input Dimension : {} - Output dimension : {}".format(INPUT_DIM, OUTPUT_DIM))
+        self.INPUT_DIM = INPUT_DIM
+        self.OUTPUT_DIM = OUTPUT_DIM
 
         tf.compat.v1.reset_default_graph()
         global_step = tf.Variable(
@@ -215,8 +220,9 @@ class DEEPMODEL():
                 optimizer='Adam',
                 clip_gradients=self.GRADIENT_CLIPPING)
 
-        saver = tf.compat.v1.train.Saver
-
+        saver = tf.compat.v1.train.Saver()
+        print("[Build Graph Return]{}".format(dict(enc_inp=enc_inp, target_seq=target_seq, train_op=optimizer,
+                    loss=loss, saver=saver, reshaped_outputs=reshaped_outputs)))
         return dict(enc_inp=enc_inp, target_seq=target_seq, train_op=optimizer,
                     loss=loss, saver=saver, reshaped_outputs=reshaped_outputs)
 
@@ -227,7 +233,7 @@ class DEEPMODEL():
         except OSError:
             print('Error: creating directory. ' + directory)
 
-    def DATA_PROCESSING(self, out_unit, signal, meterValue, TspValue, TzValue, ToaValue,
+    def DEEP_PROCESSING(self, out_unit, signal, meterValue, TspValue, ToaValue,
                         target, method, IMP_METHOD, NumOfFeatures):
 
         self.method = method
@@ -249,9 +255,9 @@ class DEEPMODEL():
             self._indpath = "{}/{}/{}/Outdoor_{}_Indoor_{}.csv".format(self.DATA_PATH, self.folder_name, out_unit, out_unit, i)
             self._indata = pd.read_csv(self._indpath, index_col=self.TIME)
 
+
             """실내기와 실외기 데이터 합친거"""
             self.data = pd.concat([self._outdata, self._indata], axis=1)
-            # print(self.data.shape)
 
             """문자열로 되어 있는 정보는 숫자로 대체"""
             self.data = self.data.replace({"High": 3, "Mid" : 2, "Low" : 1, "Auto" : 4})
@@ -263,8 +269,6 @@ class DEEPMODEL():
                                         pd.Series(list(self.data.columns)).str.contains(pat=meterValue, case=False)])[0]
             self.set_temp = list(pd.Series(list(self.data.columns))[
                                         pd.Series(list(self.data.columns)).str.contains(pat=TspValue, case=False)])[0]
-            self.zone_temp = list(pd.Series(list(self.data.columns))[
-                                        pd.Series(list(self.data.columns)).str.contains(pat=TzValue, case=False)])[0]
             self.outdoor_temp =list(pd.Series(list(self.data.columns))[
                                         pd.Series(list(self.data.columns)).str.contains(pat=ToaValue, case=False)])[0]
 
@@ -276,46 +280,53 @@ class DEEPMODEL():
 
                 c_o = round(self.data[self.meter_value][o + 1] - self.data[self.meter_value][o], 3) # 미터 값의 차이
 
-                d_o = round(self.data[self.zone_temp][o + 1] - self.data[self.set_temp][o], 3) # 설정온도_구역온도 차이
+                # d_o = round(self.data[self.zone_temp][o + 1] - self.data[self.set_temp][o], 3) # 설정온도_구역온도 차이
+                #
+                # e_o = round(self.data[self.zone_temp][o + 1] - self.data[self.outdoor_temp][o], 3) # 외기온도_구역온도 차이
+                #
+                # f_o = round(self.data[self.zone_temp][o + 1] - self.data[self.zone_temp][o], 3)  # 구역온도2_구역온도1 차이
 
-                e_o = round(self.data[self.zone_temp][o + 1] - self.data[self.outdoor_temp][o], 3) # 외기온도_구역온도 차이
-
-                f_o = round(self.data[self.zone_temp][o + 1] - self.data[self.zone_temp][o], 3)  # 구역온도2_구역온도1 차이
+                g_o = round(self.data[self.set_temp][o + 1] - self.data[self.outdoor_temp][o], 3)  # 외기온도_구역온도 차이
 
                 if  (a_o == 0) and (b_o != 0):
                     num += 1
                     self.data.at[self.data.index[o], "{}_duration".format(self.onoffsignal)] = num
                     self.data.at[self.data.index[o], "{}_difference".format(self.meter_value)] = c_o
-                    self.data.at[self.data.index[o], "{}_and_set_difference".format(self.zone_temp)] = d_o
-                    self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.zone_temp)] = e_o
-                    self.data.at[self.data.index[o], "{}_and_zone_difference".format(self.zone_temp)] = f_o
+                    # self.data.at[self.data.index[o], "{}_and_set_difference".format(self.zone_temp)] = d_o
+                    # self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.zone_temp)] = e_o
+                    # self.data.at[self.data.index[o], "{}_and_zone_difference".format(self.zone_temp)] = f_o
+                    self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.set_temp)] = g_o
                 elif (a_o != 0) and (b_o != 0):
                     num += 1
                     self.data.at[self.data.index[o], "{}_duration".format(self.onoffsignal)] = num
                     self.data.at[self.data.index[o], "{}_difference".format(self.meter_value)] = c_o
-                    self.data.at[self.data.index[o], "{}_and_set_difference".format(self.zone_temp)] = d_o
-                    self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.zone_temp)] = e_o
-                    self.data.at[self.data.index[o], "{}_and_zone_difference".format(self.zone_temp)] = f_o
+                    # self.data.at[self.data.index[o], "{}_and_set_difference".format(self.zone_temp)] = d_o
+                    # self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.zone_temp)] = e_o
+                    # self.data.at[self.data.index[o], "{}_and_zone_difference".format(self.zone_temp)] = f_o
+                    self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.set_temp)] = g_o
                 elif (a_o != 0) and (b_o == 0):
                     num = 0
                     self.data.at[self.data.index[o], "{}_duration".format(self.onoffsignal)] = num
                     self.data.at[self.data.index[o], "{}_difference".format(self.meter_value)] = c_o
-                    self.data.at[self.data.index[o], "{}_and_set_difference".format(self.zone_temp)] = d_o
-                    self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.zone_temp)] = e_o
-                    self.data.at[self.data.index[o], "{}_and_zone_difference".format(self.zone_temp)] = f_o
+                    # self.data.at[self.data.index[o], "{}_and_set_difference".format(self.zone_temp)] = d_o
+                    # self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.zone_temp)] = e_o
+                    # self.data.at[self.data.index[o], "{}_and_zone_difference".format(self.zone_temp)] = f_o
+                    self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.set_temp)] = g_o
                 else:
                     num = 0
                     self.data.at[self.data.index[o], "{}_duration".format(self.onoffsignal)] = num
                     self.data.at[self.data.index[o], "{}_difference".format(self.meter_value)] = c_o
-                    self.data.at[self.data.index[o], "{}_and_set_difference".format(self.zone_temp)] = d_o
-                    self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.zone_temp)] = e_o
-                    self.data.at[self.data.index[o], "{}_and_zone_difference".format(self.zone_temp)] = f_o
+                    # self.data.at[self.data.index[o], "{}_and_set_difference".format(self.zone_temp)] = d_o
+                    # self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.zone_temp)] = e_o
+                    # self.data.at[self.data.index[o], "{}_and_zone_difference".format(self.zone_temp)] = f_o
+                    self.data.at[self.data.index[o], "{}_and_oa_difference".format(self.set_temp)] = g_o
             # 가장 마지막 값은 이전 값을 받음
             self.data.at[self.data.index[-1], "{}_duration".format(self.onoffsignal)] = num
             self.data.at[self.data.index[-1], "{}_difference".format(self.meter_value)] = c_o
-            self.data.at[self.data.index[-1], "{}_and_set_difference".format(self.zone_temp)] = d_o
-            self.data.at[self.data.index[-1], "{}_and_oa_difference".format(self.zone_temp)] = e_o
-            self.data.at[self.data.index[-1], "{}_and_zone_difference".format(self.zone_temp)] = f_o
+            # self.data.at[self.data.index[-1], "{}_and_set_difference".format(self.zone_temp)] = d_o
+            # self.data.at[self.data.index[-1], "{}_and_oa_difference".format(self.zone_temp)] = e_o
+            # self.data.at[self.data.index[-1], "{}_and_zone_difference".format(self.zone_temp)] = f_o
+            self.data.at[self.data.index[-1], "{}_and_oa_difference".format(self.set_temp)] = g_o
 
             #저장할 총 경로
             save = "{}/Deepmodel/{}({})/{}/{}".format(self.SAVE_PATH, self.method, self.imp_method, self.folder_name, out_unit)
@@ -336,7 +347,8 @@ class DEEPMODEL():
                                         pd.Series(list(self.data.columns)).str.contains(pat=target, case=False)])[0]
             print("[Target column name] {}".format(self.target))
 
-            #Feature importance 출력
+            # Feature importance 출력값을 사용하여 특징 중요도가 높은 순서대로
+            # 모델 학습에 사용
             self._imppath = "{}/Ensemble/{}/{}/{}/IMP_Outdoor_{}_Indoor_{}.csv".format(self.SAVE_PATH, self.imp_method, self.folder_name, out_unit, out_unit, i)
             self._impdata = pd.read_csv(self._imppath, index_col='Unnamed: 0')
             self._impdata= self._impdata.transpose()
@@ -350,106 +362,133 @@ class DEEPMODEL():
             # self.features = list(self.data.columns.difference([self.target]))
 
             """필요한 컬럼만을 넣어서 데이터 셋을 만든다."""
-            df = self.data[self.features]
-            df.index = pd.to_datetime(df.index)
-            df['hr_sin'] = np.round(np.sin(df.index.hour * (2. * np.pi / 24)), decimals=2) # 시계열 특성을 포함하기 위한 컬럼
-            df['hr_cos'] = np.round(np.cos(df.index.hour * (2. * np.pi / 24)), decimals=2)
-            df['wk_sin'] = np.round(np.sin((df.index.weekday - 1) * (2. * np.pi / 12)), decimals=2)
-            df['wk_cos'] = np.round(np.cos((df.index.weekday - 1) * (2. * np.pi / 12)), decimals=2)
-            df[self.target] = self.data[self.target].copy()
 
-            #Train Test set을 결정
+            df = self.data[self.features]
+
+            df.to_csv("{}/After_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, i))  # 조건 적용 후
+            df.index = pd.to_datetime(df.index)
+            df.loc[:, 'hr_sin'] = np.round(np.sin(df.index.hour * (2. * np.pi / 24)), decimals=2) # 시계열 특성을 포함하기 위한 컬럼
+            df.loc[:, 'hr_cos'] = np.round(np.cos(df.index.hour * (2. * np.pi / 24)), decimals=2)
+            df.loc[:, 'wk_sin'] = np.round(np.sin((df.index.weekday - 1) * (2. * np.pi / 12)), decimals=2)
+            df.loc[:, 'wk_cos'] = np.round(np.cos((df.index.weekday - 1) * (2. * np.pi / 12)), decimals=2)
+            df.loc[:, self.target] = self.data.loc[:, self.target].copy()
+            df.loc[:, 'inputy'] = self.data.loc[:, self.target].copy()
+
+            # TST : 테스트 셋을 시작하는 시간 길이
             TST =  datetime.datetime(int(self.test_year), int(self.test_month), int(self.test_date))
             df_train = df.loc[df.index <= TST]
             df_test = df.loc[df.index >= TST]
+
+            #시계열 기준으로 정렬
             df_train = df_train.sort_values(self.TIME)
             df_test = df_test.sort_values(self.TIME)
-            df_train = df_train.drop_duplicates(keep='first')#중복 값이 있다면, 첫번째 값을 남기고 제거
+
+            # 중복값 제거
+            df_train = df_train.drop_duplicates(keep='first') #중복 값이 있다면, 첫번째 값을 남기고 제거
             df_test = df_test.drop_duplicates(keep='first')
+
+            # 데이터 확인
             df_train.to_csv("{}/BldgRawData_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, i), sep=',', float_format='%.2f')
             df_test.to_csv("{}/BldgRawData_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, i), sep=',', float_format='%.2f')
-            df_train = df_train.reset_index().drop(self.TIME, 1)
-            df_test = df_test.reset_index().drop(self.TIME, 1)
 
-            #이것이 최종적으로 학습에 들어가는 Feature list
+            # 시계열을 제거했다.
+            df_train = df_train.reset_index().drop(self.TIME, 1) #TST 이전
+            df_test = df_test.reset_index().drop(self.TIME, 1) # TST 이후
+
+            #x_col: 최종적으로 학습에 들어가는 Feature list
             x_col = list(df_train.columns)
             x_col.remove(self.target)
 
-            X_train = df_train[x_col].values.copy()
-            y_train = df_train[self.target].values.copy().reshape(-1, 1)
-            X_test = df_test[x_col].values.copy()
-            y_test = df_test[self.target].values.copy().reshape(-1, 1)
+            # 시계열 인덱스는 제거되었다.
+            X_train = df_train[x_col].values.copy() # X_train : TST 데이터 이전의 데이터
+            y_train = df_train[self.target].values.copy().reshape(-1, 1) # y_train : TST 이전의 타겟 값
+            X_test = df_test[x_col].values.copy() # X_test : TST 이후의 데이터
+            y_test = df_test[self.target].values.copy().reshape(-1, 1) #y_test : TST 이후의 타켓ㅅ값
             print("[Train and Test dataset] X_train : {} - X_test : {} - y_train : {} - y_test : {}"
                   .format(X_train.shape, X_test.shape, y_train.shape, y_test.shape))
 
-
-            """
-            Normalization
-            """
-            # Parameter for normalize
+            # Parameter for normalizing
             mean = []
             std = []
             param_col = []
-            for kk in range(X_train.shape[1] - 4):
-                if X_train[:, kk].std() <= 0:
-                    print(kk)
+            for _s in range(X_train.shape[1] - 4):
+                if X_train[:, _s].std() <= 0:
+                    print(_s)
                 else:
-                    temp_mean = X_train[:, kk].mean()
-                    temp_std = X_train[:, kk].std()
-                    X_train[:, kk] = (X_train[:, kk] - temp_mean) / temp_std
-                    X_test[:, kk] = (X_test[:, kk] - temp_mean) / temp_std
-                param_col.append(x_col[kk])
+                    temp_mean = X_train[:, _s].mean()
+                    temp_std = X_train[:, _s].std()
+                    X_train[:, _s] = (X_train[:, _s] - temp_mean) / temp_std
+                    X_test[:, _s] = (X_test[:, _s] - temp_mean) / temp_std
+                param_col.append(x_col[_s])
                 mean.append(temp_mean)
                 std.append(temp_std)
-            """
-            z-score transform y
-            """
-            y_mean = y_train.mean()
-            y_std = y_train.std()
-            print('y_std, y_mean', y_std, y_mean)
-            y_train = (y_train - y_mean) / y_std
-            y_test = (y_test - y_mean) / y_std
+
+            # z-score transform y
+            self.y_mean = y_train.mean()
+            self.y_std = y_train.std()
+            print('y_std : {} - y_mean : {}'.format(round(self.y_std, 3), round(self.y_mean,3)))
+
+            y_train = (y_train - self.y_mean) / self.y_std
+            y_test = (y_test - self.y_mean) / self.y_std
             param_col.append(self.target)
 
-            mean.append(y_mean)
-            std.append(y_std)
+            mean.append(self.y_mean)
+            std.append(self.y_std)
             param = [mean, std]
             print("[param check] mean : {} ".format(mean))
             print("[param check] std : {}".format(std))
             norm_param = pd.DataFrame(param, index=['mean', 'std'], columns=param_col)
             norm_param.to_csv("{}/Normalize_parameter_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, i))
+
             pd.DataFrame(X_train).to_csv("{}/Xtrain_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, i))
             pd.DataFrame(y_train).to_csv("{}/ytrain_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, i))
             pd.DataFrame(X_test).to_csv("{}/Xtest_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, i))
             pd.DataFrame(y_test).to_csv("{}/ytrain_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, i))
 
-            x, y = self.generate_train_samples(x=X_train, y=y_train,
-                                               input_seq_len=self.INPUT_SEQ_LEN,
-                                               output_seq_len=self.OUTPUT_SEQ_LEN,
-                                               batch_size=self.BATCH_SIZE)
-            train_x, train_y = self.generate_test_samples(x=X_train, y=y_train,
-                                                          input_seq_len=self.INPUT_SEQ_LEN,
-                                                          output_seq_len=self.OUTPUT_SEQ_LEN)
-            test_x, test_y = self.generate_test_samples(x=X_test, y=y_test,
-                                                        input_seq_len=self.INPUT_SEQ_LEN,
-                                                        output_seq_len=self.OUTPUT_SEQ_LEN)
+            # x, y = self.generate_train_samples(x=X_train, y=y_train,
+            #                                    input_seq_len=self.INPUT_SEQ_LEN,
+            #                                    output_seq_len=self.OUTPUT_SEQ_LEN,
+            #                                    batch_size=self.BATCH_SIZE)
+            # train_x, train_y = self.generate_test_samples(x=X_train, y=y_train,
+            #                                               input_seq_len=self.INPUT_SEQ_LEN,
+            #                                               output_seq_len=self.OUTPUT_SEQ_LEN)
+            # test_x, test_y = self.generate_test_samples(x=X_test, y=y_test,
+            #                                             input_seq_len=self.INPUT_SEQ_LEN,
+            #                                             output_seq_len=self.OUTPUT_SEQ_LEN)
 
-            rnn_model = self.build_graph(INPUT_DIM=X_train.shape[1], OUTPUT_DIM=y_train.shape[1])
+            #Build graph
+            rnn_model = self.build_graph(INPUT_DIM=int(X_train.shape[1]), OUTPUT_DIM=int(y_train.shape[1]))
+            saver = tf.compat.v1.train.Saver()
+            self.TRAIN_PROCESS(rnn_model=rnn_model, X_train=X_train, y_train=y_train, save=save, out_unit=out_unit, iterNum=i) #save : 저장경로
 
+            test_model = self.build_graph(INPUT_DIM=int(X_test.shape[1]), OUTPUT_DIM=int(y_test.shape[1]))
+            saver = tf.compat.v1.train.Saver()
+            self.TEST_PROCESS(test_model=test_model, X_test=X_test, y_test=y_test, save=save, out_unit=out_unit, iterNum=i)
+
+
+    def TRAIN_PROCESS(self, rnn_model, X_train, y_train, out_unit, save, iterNum):
             saver = tf.compat.v1.train.Saver()
             init = tf.compat.v1.global_variables_initializer()
             loss_fun = []
             with tf.compat.v1.Session() as sess:
-                sess.run(init)
-                print("[Model Training] Period Prediction Model")
+                sess.run(init) # 초기화
                 for oo_ in range(self.TOTAL_ITERATION):
+                    # X_train : TST 이전의 데이터
+                    # y_train : TST 이전의 타겟
+                    # print("[Model Training Sample] X_train : {} - y_train : {}".format(X_train.shape, y_train.shape))
                     batch_input, batch_output = self.generate_train_samples(x=X_train,
                                                                             y=y_train,
                                                                             input_seq_len=self.INPUT_SEQ_LEN,
                                                                             output_seq_len=self.OUTPUT_SEQ_LEN,
                                                                             batch_size=self.BATCH_SIZE)
+                    # print("[Batch input] batch_input : {} - batch_output : {}".format(batch_input.shape, batch_output.shape))
+                    # 배치 사이즈 만큼 잘라서 모델에 입력한다.
+                    # rnn model의 enc_inp의 t번째에 입력 배치값을 순서대로 넣는다.
                     feed_dict = {rnn_model['enc_inp'][t]: batch_input[:, t] for t in range(self.INPUT_SEQ_LEN)}
+                    # rnn model의 targer_seq에 출려 배치값을 순서대로 업데이트한다.
+                    # update 함수는
                     feed_dict.update({rnn_model['target_seq'][t]: batch_output[:, t] for t in range(self.OUTPUT_SEQ_LEN)})
+                    # print("{} - {}".format(rnn_model['train_op'], rnn_model['loss']))
                     _, loss_t = sess.run([rnn_model['train_op'], rnn_model['loss']], feed_dict)
                     if i % 100 == 0:
                         print("[step: {}] loss: {} - {}".format(i, loss_t, datetime.datetime.now()))
@@ -462,26 +501,73 @@ class DEEPMODEL():
                         break
 
                 temp_saver = rnn_model['saver']()
-                save_path = temp_saver.save(sess, "{}/Model_Outdoor_{}_Indoor_{}".format(save, out_unit, i))
-            print("Checkpoint saved at: {}".format(save))
+                save_path = temp_saver.save(sess, "{}/Model_Outdoor_{}_Indoor_{}".format(save, out_unit, iterNum))
+            print("[Checkpoint saved at] {}".format(save))
             loss_result = pd.DataFrame(loss_fun, columns=['iteration', 'loss'])
-            loss_result.to_csv('{}/lossResult_Outdoor_{}_Indoor_{}.csv'.format(save,out_unit, i))
+            loss_result.to_csv('{}/lossResult_Outdoor_{}_Indoor_{}.csv'.format(save, out_unit, iterNum))
 
+    def TEST_PROCESS(self, test_model, X_test, y_test, save, out_unit, iterNum):
+        init = tf.compat.v1.global_variables_initializer()
+        with tf.compat.v1.Session() as sess:
+            sess.run(init)
+            saver = test_model['saver']().restore(sess, "{}/Model_Outdoor_{}_Indoor_{}".format(save, out_unit, iterNum))
+            feed_dict = {test_model['enc_inp'][t]: X_test[:, t, :] for t in
+                         range(self.INPUT_SEQ_LEN)}  # batch prediction
+            feed_dict.update(
+                {test_model['target_seq'][t]: np.zeros([X_test.shape[0], y_test.shape[1]], dtype=np.float32) for t in
+                 range(self.OUTPUT_SEQ_LEN)})
+            final_preds = sess.run(test_model['reshaped_outputs'], feed_dict=feed_dict)  # type : list
+            final_preds = [np.expand_dims(pred, axis=1) for pred in final_preds]
+            final_preds2 = np.array(final_preds)
+            final_preds2 = final_preds2.reshape(final_preds2.shape[0],
+                                                final_preds2.shape[1] * final_preds2.shape[2])  # (8620, 10)
+            np.savetxt("{}/Model_Outdoor_{}_Indoor_{}_testresult_y2.csv".format(save, out_unit, iterNum), final_preds2,
+                       fmt='%.2f', delimiter=',')
+            final_preds = np.concatenate(final_preds, axis=1)  # (8620, 10, 1)
+            final_preds3 = np.array(final_preds)  # (8620, 10, 1)
+            final_preds3 = final_preds3.reshape(final_preds3.shape[0],
+                                                final_preds3.shape[1] * final_preds3.shape[2])  # (8620, 10)
+            np.savetxt("{}/Model_Outdoor_{}_Indoor_{}_testresult_y3.csv".format(save, out_unit, iterNum), final_preds3,
+                       fmt='%.2f', delimiter=',')
+
+        # remove duplicate hours and concatenate into one long array
+        test_y_expand = np.concatenate([y_test[i].reshape(-1) for i in range(0, y_test.shape[0], self.OUTPUT_SEQ_LEN)],
+                                       axis=0)
+        final_preds_expand = np.concatenate(
+            [final_preds[i].reshape(-1) for i in range(0, final_preds.shape[0], self.OUTPUT_SEQ_LEN)], axis=0)
+        np.savetxt("{}/Model_Outdoor_{}_Indoor_{}_final_preds_expand.csv".format(save, out_unit, iterNum),
+                   final_preds_expand,
+                   fmt='%.2f', delimiter=',')
+        """
+        결과데이터 출력 과정(Nomalization 복구 과정 포함)
+        """
+        final_preds_expand2 = final_preds_expand * self.y_std + self.y_mean
+        print('y_std, y_mean', self.y_std, self.y_mean)
+        test_y_expand2 = test_y_expand * self.y_std + self.y_mean
+        Y_pred = pd.DataFrame(final_preds_expand2)
+        Y = pd.DataFrame(test_y_expand2)
+        Y_result = pd.concat([Y, Y_pred], ignore_index=True, axis=1)
+        Y_result.columns = ['Test', 'Prediction']
+        print("Y_result : {} - {}".format(type(Y_result), Y_result.shape))
+        Y_result.to_csv("{}/Model_Outdoor_{}_Indoor_{}_RNN_Test.csv".format(save, out_unit, iterNum))
 
 TIME = 'updated_time'
-TARGET = "Duration"
+TARGET = "room_temp"
 
 INPUT_SEQ_LEN = 10
 OUTPUT_SEQ_LEN = 10
 BATCH_SIZE = 500
 LEARNING_RATE = 0.01
 LAMBDA_L2_REG = 0.003
+
 HIDDEN_DIM = 128
 NUM_STACK_LAYERS = 4
+DROPOUT = 0.5
+
 KEEP_RATE = 0.7
 GRADIENT_CLIPPING = 2.5
 FEED_PREVIOUS = False
-DROPOUT = 0.5
+
 TOTAL_ITERATION = 5000
 
 start ='2021-01-01'
@@ -491,10 +577,11 @@ test_start_time = '2021-03-27'
 SIGNAL = 'indoor_power'
 meterValue = 'value'
 TspValue = 'set_temp'
-TzValue =  'room_temp'
+# TzValue =  'room_temp'
 ToaValue = 'outdoor_temp'
 METHOD = "Seq2seq"
-IMP_METHOD = "Gradientboosting"
+IMP_METHOD = "Adaboosting"
+
 NumOfFeatures = 5
 
 DML = DEEPMODEL(time=TIME, LEARNING_RATE=LEARNING_RATE, LAMBDA_L2_REG=LAMBDA_L2_REG, BATCH_SIZE=BATCH_SIZE,
@@ -504,7 +591,7 @@ DML = DEEPMODEL(time=TIME, LEARNING_RATE=LEARNING_RATE, LAMBDA_L2_REG=LAMBDA_L2_
                 start=start, end=end, test_start_time=test_start_time)
 
 for i in [909]:#, 910, 921, 920, 919, 917, 918, 911]:
-    DML.DATA_PROCESSING(out_unit=i, signal=SIGNAL, meterValue=meterValue,
-                                                           TspValue=TspValue, TzValue=TzValue, ToaValue=ToaValue,
-                                                           target=TARGET, method=METHOD, IMP_METHOD=IMP_METHOD,
-                                                           NumOfFeatures=NumOfFeatures)
+    DML.DEEP_PROCESSING(out_unit=i, signal=SIGNAL, meterValue=meterValue,
+                        TspValue=TspValue, ToaValue=ToaValue,
+                        target=TARGET, method=METHOD, IMP_METHOD=IMP_METHOD,
+                        NumOfFeatures=NumOfFeatures)

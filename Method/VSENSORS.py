@@ -64,7 +64,6 @@ class SOFT():
                 print('Epoch {:4d}/{} W1: {:.3f}, W2: {:.3f}, b: {:.3f} Cost: {:.6f}'.format(epoch, nb_epochs, W1.item(), W2.item(), b.item(), cost.item()))
         return 0
 
-
 path = 'D:/OPTIMAL/Data/2022-03-07/outdoor_909.csv'
 time = 'updated_time'
 features = ['total_indoor_capa', 'comp1','comp2', 'suction_temp1',
