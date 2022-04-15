@@ -311,6 +311,7 @@ N_JOBS = -1
 
 # reg_candidate = [1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1, 5, 10, 100]
 
+#수정위치
 space = {
     "MAX_DEPTH" : hp.uniform("max_depth", 5, 9),
     "MAX_LEAF_NODES" : hp.uniform("max_leaf_nodes", 5, 10),
