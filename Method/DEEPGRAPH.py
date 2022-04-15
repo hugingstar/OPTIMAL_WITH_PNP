@@ -105,6 +105,7 @@ class DEEPMODEL():
     def build_graph(self, INPUT_DIM, OUTPUT_DIM):
         print("[Build Graph] Input Dimension : {} - Output dimension : {} - Feed Previous : {} - Dropout : {}"
               .format(INPUT_DIM, OUTPUT_DIM, self.FEED_PREVIOUS, self.DROPOUT))
+
         self.INPUT_DIM = INPUT_DIM
         self.OUTPUT_DIM = OUTPUT_DIM
 
@@ -231,6 +232,9 @@ class DEEPMODEL():
                     loss=loss, saver=saver, reshaped_outputs=reshaped_outputs)
 
     def build_graph_With_Attention(self, INPUT_DIM, OUTPUT_DIM):
+        print("[Build Graph With Attention] Input Dimension : {} - Output dimension : {} - Feed Previous : {} - Dropout : {}"
+              .format(INPUT_DIM, OUTPUT_DIM, self.FEED_PREVIOUS, self.DROPOUT))
+
         self.INPUT_DIM = INPUT_DIM
         self.OUTPUT_DIM = OUTPUT_DIM
 
@@ -240,19 +244,20 @@ class DEEPMODEL():
             name="global_step",
             trainable=False,
             collections=[tf.compat.v1.GraphKeys.GLOBAL_STEP, tf.compat.v1.GraphKeys.GLOBAL_VARIABLES])
-
         weights = {
-            'out': tf.compat.v1.get_variable('Weights_out', \
-                                             shape=[self.HIDDEN_DIM, self.OUTPUT_DIM], \
-                                             dtype=tf.float32, \
+            'out': tf.compat.v1.get_variable('Weights_out',
+                                             shape=[self.HIDDEN_DIM, self.OUTPUT_DIM],
+                                             dtype=tf.float32,
                                              initializer=tf.truncated_normal_initializer()),
         }
+        print("weights: {}".format(weights))
         biases = {
-            'out': tf.compat.v1.get_variable('Biases_out', \
-                                             shape=[self.OUTPUT_DIM], \
-                                             dtype=tf.float32, \
+            'out': tf.compat.v1.get_variable('Biases_out',
+                                             shape=[self.OUTPUT_DIM],
+                                             dtype=tf.float32,
                                              initializer=tf.constant_initializer(0.)),
         }
+        print("biases: {}".format(biases))
 
         with tf.compat.v1.variable_scope('Seq2seq'):
             # Encoder: inputs
@@ -267,125 +272,207 @@ class DEEPMODEL():
                 for t in range(self.OUTPUT_SEQ_LEN)
             ]
 
-            # Give a "GO" token to the decoder.
-            # If dec_inp are fed into decoder as inputs, this is 'guided' training; otherwise only the
-            # first element will be fed as decoder input which is then 'un-guided'
+            """decoder initial value, GO value"""
             dec_inp = [tf.zeros_like(target_seq[0], dtype=tf.float32, name="GO")] + target_seq[:-1]
 
-            with tf.compat.v1.variable_scope('LSTMCell'):
-                cells = []
-                for i in range(self.NUM_STACK_LAYERS):
-                    with tf.compat.v1.variable_scope('RNN_{}'.format(i)):
-                        cell = tf.contrib.rnn.LSTMCell(self.HIDDEN_DIM)
-                        cells.append(tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=1.0 - self.DROPOUT))
-                cell = tf.contrib.rnn.MultiRNNCell(cells)
+            """Encoder"""
+            with variable_scope.variable_scope("rnn_encoder"):
+                print("==========[Encoder] LSTMCell information ==========")
+                with tf.compat.v1.variable_scope('LSTMCell'):
+                    cells = []
+                    for i in range(self.NUM_STACK_LAYERS):  # num_stacked_layers=4 이고
+                        scope_message = 'RNN_{}'.format(i)
+                        with tf.compat.v1.variable_scope(scope_message):
+                            cell = tf.contrib.rnn.LSTMCell(num_units=self.HIDDEN_DIM)  # LSTM cell 하나 넣었고,
+                            cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=1.0 - self.DROPOUT)
+                            cells.append(cell)  # 리스트에 추가
+                            print(
+                                "scope_message: {} - hidden_dim : {} - cell:{}".format(scope_message, self.HIDDEN_DIM, cell))
+                    print("[cells] len : {} - {} - {}".format(len(cells), type(cells), cells))
+                    enc_cell = tf.contrib.rnn.MultiRNNCell(cells)
+                    print("[enc_cell] {} - {}".format(type(enc_cell), enc_cell))
+                    # Dynamic RNN으로 바꾸기
+                enc_outputs, enc_state = rnn.static_rnn(enc_cell, enc_inp, dtype=tf.float32)
+                print("==========================================\n")
 
-            def _rnn_decoder(decoder_inputs,
-                             initial_state,
-                             cell,
-                             loop_function=None,
-                             scope=None, enc_outputs=None):
-                """RNN decoder for the sequence-to-sequence model.
-                """
-                with variable_scope.variable_scope(scope or "rnn_decoder"):
-                    state = initial_state
-                    outputs = []
-                    prev = None
-                    for i, inp in enumerate(decoder_inputs):
-                        if loop_function is not None and prev is not None:
-                            with variable_scope.variable_scope("loop_function", reuse=True):
-                                inp = loop_function(prev, i)
-                        if i > 0:
-                            variable_scope.get_variable_scope().reuse_variables()
-                        output, state = cell(inp, state)
-                        outputs.append(output)
-                        if loop_function is not None:
-                            prev = output
-                return outputs, state, enc_outputs
-
-            def _basic_rnn_seq2seq(encoder_inputs,
-                                   decoder_inputs,
-                                   cell,
-                                   feed_previous,
-                                   dtype=dtypes.float32,
-                                   scope=None):
-
-                """Basic RNN sequence-to-sequence model.
-                """
-                with variable_scope.variable_scope(scope or "basic_rnn_seq2seq"):
-                    enc_cell = copy.deepcopy(cell)
-                    enc_output, enc_state = rnn.static_rnn(enc_cell, encoder_inputs, dtype=dtype)
-                    if feed_previous:
-                        return _rnn_decoder(decoder_inputs, enc_state, cell, _loop_function, enc_outputs=enc_output)
-                    else:
-                        return _rnn_decoder(decoder_inputs, enc_state, cell, enc_outputs=enc_output)
+                print("==========[Encoder] Static RNN ==========")
+                print("[enc_inp] {} - {} - {}".format(len(enc_inp), type(enc_inp), enc_inp))
+                print("[enc_outputs] {} - {} - {}".format(len(enc_inp), type(enc_outputs), enc_outputs))
+                print("[enc_state] {} - {} - {}".format(array_ops.shape(enc_state)[0], type(enc_state), enc_state))
+                print("==========================================\n")
 
             def _loop_function(prev, _):
                 '''Naive implementation of loop function for _rnn_decoder. '''
                 return tf.matmul(prev, weights['out']) + biases['out']
 
-            dec_outputs, dec_memory, enc_outputs = _basic_rnn_seq2seq(enc_inp, dec_inp, cell,feed_previous=self.FEED_PREVIOUS)
+            # dec_states = tf.ones_like(enc_state) #tf.ones_like(enc_state)
+
+            """Decoder"""
+            feed_previous = self.FEED_PREVIOUS  # train은 False, test는 True
+            if feed_previous:
+                with variable_scope.variable_scope("rnn_decoder"):
+                    print("==========[Decoder] LSTMCell information ==========")
+                    with tf.compat.v1.variable_scope('LSTMCell'):
+                        cells = []
+                        for i in range(self.NUM_STACK_LAYERS):  # num_stacked_layers=4
+                            scope_message = 'RNN_{}'.format(i)
+                            with tf.compat.v1.variable_scope(scope_message):
+                                cell = tf.contrib.rnn.LSTMCell(num_units=self.HIDDEN_DIM)
+                                cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=1.0 - self.DROPOUT)
+                                print("scope_message: {} - hidden_dim : {} - cell:{}".format(scope_message, self.HIDDEN_DIM,
+                                                                                             cell))
+                                cells.append(cell)
+                            # print("[cells] len : {} - {} - {}".format(len(cells), type(cells), cells))
+                        dec_cell = tf.contrib.rnn.MultiRNNCell(cells)
+                        print("[dec_cell] {} - {}".format(type(dec_cell), enc_cell))
+                    print("==========================================\n")
+                    prev = None
+                    dec_outputs = []
+                    for i, de_inp in enumerate(dec_inp):
+                        # print(i, de_inp)
+                        if _loop_function is not None and prev is not None:
+                            with variable_scope.variable_scope("loop_function", reuse=True):
+                                de_inp = _loop_function(prev, i)
+                        if i > 0:
+                            variable_scope.get_variable_scope().reuse_variables()
+                        dec_output, dec_state = dec_cell(de_inp, enc_state)  # enc_state
+                        dec_outputs.append(dec_output)
+                        if _loop_function is not None:
+                            prev = dec_output
+            else:
+                with variable_scope.variable_scope("rnn_decoder"):
+                    print("==========[Decoder] LSTMCell information ==========")
+                    with tf.compat.v1.variable_scope('LSTMCell'):
+                        cells = []
+                        for i in range(self.NUM_STACK_LAYERS):  # num_stacked_layers=4 이고
+                            scope_message = 'RNN_{}'.format(i)
+                            with tf.compat.v1.variable_scope(scope_message):
+                                cell = tf.contrib.rnn.LSTMCell(num_units=self.HIDDEN_DIM)
+                                cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=1.0 - self.DROPOUT)
+                                print("scope_message: {} - hidden_dim : {} - cell:{}".format(scope_message, self.HIDDEN_DIM,
+                                                                                             cell))
+                                cells.append(cell)
+                            # print("[cells] len : {} - {} - {}".format(len(cells), type(cells), cells))
+                        dec_cell = tf.contrib.rnn.MultiRNNCell(cells)
+                        print("[dec_cell] {} - {}".format(type(dec_cell), dec_cell))
+                    print("==========================================\n")
+
+                    prev = None
+                    dec_outputs = []
+                    for i, de_inp in enumerate(dec_inp):
+                        print(i, de_inp)
+                        if _loop_function is not None and prev is not None:
+                            with variable_scope.variable_scope("loop_function", reuse=True):
+                                de_inp = _loop_function(prev, i)
+                        if i > 0:
+                            variable_scope.get_variable_scope().reuse_variables()
+                        dec_output, dec_state = dec_cell(de_inp, enc_state)
+                        dec_outputs.append(dec_output)
+                        if _loop_function is not None:
+                            prev = dec_output
+
+            print("==========[Decoder] Static RNN ==========")
+            print("[dec_inp] {} - {} - {}".format(len(dec_inp), type(dec_inp), dec_inp))
+            print("[dec_outputs] {} - {} - {}".format(len(dec_outputs), type(dec_outputs), dec_outputs))
+            print("[dec_state] {} - {} - {}".format(len(dec_state), type(dec_state), dec_state))
+            print("==========================================\n")
+
+            """Encoder - cell state/hidden state"""
+            enc_cell_states = tf.concat([tf.expand_dims(state, 1) for state in enc_state], axis=1)[0]
+            print("[enc_cell_states] {} - {} - {}".format(enc_cell_states.get_shape(), type(enc_cell_states),
+                                                          enc_cell_states))  # (4, ?, 128)
+            enc_hidden_states = tf.concat([tf.expand_dims(state, 1) for state in enc_state], axis=1)[1]
+            print("[enc_hidden_states] {} - {} - {}".format(enc_hidden_states.get_shape(), type(enc_hidden_states),
+                                                            enc_hidden_states))  # (4, ?, 128)
+
+            """Decoder - cell state/hidden state"""
+            dec_cell_states = tf.concat([tf.expand_dims(state, 1) for state in dec_state], axis=1)[0]
+            print("[dec_cell_states] {} - {} - {}".format(dec_cell_states.get_shape(), type(dec_cell_states),
+                                                          dec_cell_states))  # (4, ?, 128)
+            dec_hidden_states = tf.concat([tf.expand_dims(state, 1) for state in dec_state], axis=1)[1]
+            print("[dec_hidden_states] {} - {} - {}".format(dec_hidden_states.get_shape(), type(dec_hidden_states),
+                                                            dec_hidden_states))  # (4, ?, 128)
+
+            """Convert to tensor"""
+            print("==========[Enc-Dec] Convert to tensor ==========")
+            enc_state = tf.convert_to_tensor(enc_state)
+            print("[enc_state] {} - {} - {}".format(enc_state.get_shape(), type(enc_state), enc_state))
+            dec_state = tf.convert_to_tensor(dec_state)
+            print("[dec_state] {} - {} - {}".format(dec_state.get_shape(), type(dec_state), dec_state))
 
             enc_outputs = tf.convert_to_tensor(enc_outputs)
+            print("[enc_outputs] {} - {} - {}".format(enc_outputs.get_shape(), type(enc_outputs), enc_outputs))
             dec_outputs = tf.convert_to_tensor(dec_outputs)
+            print("[dec_outputs] {} - {} - {}".format(dec_outputs.get_shape(), type(dec_outputs), dec_outputs))
 
+            """Attention layer"""
             with variable_scope.variable_scope("attn_mechanism"):  # attention mechanism
                 with tf.variable_scope("attn_score"):  # attention score
                     trs_dec_outputs = tf.transpose(dec_outputs, perm=[0, 2, 1])
-                    score = tf.matmul(enc_outputs, trs_dec_outputs)
-                    # score = tf.nn.tanh(tf.matmul(enc_outputs, trs_dec_outputs))  # dot product : 마지막 state,
+                    print("[trs_dec_outputs] {} - {} - {}".format(trs_dec_outputs.get_shape(), type(trs_dec_outputs),
+                                                                  trs_dec_outputs))
+                    score = tf.matmul(enc_outputs, trs_dec_outputs)  # dot product : 마지막 state,
+                    print("[score] {} - {} - {}".format(score.get_shape(), type(score), score))
                 with tf.variable_scope("attn_align"):  # softmax - attention distribution - attention weight
-                    alphas = tf.nn.softmax(score, name="alphas")  # 총합이 1이 되도록 alignment(softmax) 실행
+                    alphas = tf.nn.softmax(score, name="alphas")  # 총합이 1이 되도록 alignment 실행
+                    print("[alphas] {} - {} - {}".format(type(alphas), alphas.shape, alphas))  # 시간의 가중치
+                    # alphas_argmax = tf.argmax(alphas, axis=2, name="outputs_argmax", output_type=tf.int32)  # [B, T2]
+                    # outputs = tf.gather_nd(params=enc_inp, indices=_index_matrix_to_pairs(alphas_argmax))
                 with tf.variable_scope("context_vector"):  # attention outputs
                     context_vec = tf.reduce_sum(tf.matmul(alphas, enc_outputs), axis=1,
                                                 name="context")  # Transpose, 곱하는 순서
+                    print("[context_vec] {} - {} - {}".format(type(context_vec), context_vec.shape, context_vec))
                     context_vec = tf.expand_dims(context_vec, axis=1, name="context_vec")
+                    print("[context_vec] {} - {} - {}".format(type(context_vec), context_vec.shape, context_vec))
+                    print("[dec_outputs] {} - {} - {}".format(type(dec_outputs), dec_outputs.shape, dec_outputs))
                 with tf.variable_scope("attn_outputs"):
                     attn_outputs = tf.multiply(context_vec, dec_outputs)
+                    print("[attn_outputs] {} - {} - {}".format(type(attn_outputs), attn_outputs.get_shape(),
+                                                               attn_outputs))
                     attn_dec_outputs_list = []
                     for j in range(attn_outputs.get_shape()[0]):
+                        print(attn_outputs[j])
                         attn_dec_outputs_list.append(attn_outputs[j])
-
-            output_cell = tf.contrib.rnn.BasicLSTMCell(
-                num_units=self.HIDDEN_DIM, state_is_tuple=True, activation=tf.tanh)
-            attn_dec_outputs_list, state = rnn.static_rnn(output_cell, attn_dec_outputs_list, dtype=dtypes.float32)
-            # attn_dec_outputs_list = tf.contrib.rnn.LSTMCell(attn_outputs)
-            #
-            # rnn.static_rnn(enc_cell, encoder_inputs, dtype=dtype)
-            # print(attn_dec_outputs_list)
+                    print("[attn_dec_outputs_list] {} - {} - {}".format(len(attn_dec_outputs_list),
+                                                                        type(attn_dec_outputs_list),
+                                                                        attn_dec_outputs_list))
+            print("[weights['out']] {} - {}".format(type(weights['out']), weights['out']))
+            print("[biases['out']] {} - {}".format(type(biases['out']), biases['out']))
+            for k in attn_dec_outputs_list:  # 확인용
+                print(k)
             reshaped_outputs = [tf.matmul(i, weights['out']) + biases['out'] for i in
                                 attn_dec_outputs_list]  # attention
+            print("[reshaped_outputs] {} - {} - {}".format(len(reshaped_outputs), type(reshaped_outputs),
+                                                           reshaped_outputs))
 
-        # Training loss and optimizer
-        with tf.compat.v1.variable_scope('Loss'):
-            # L2 loss
-            output_loss = 0
-            for _y, _Y in zip(reshaped_outputs, target_seq):
-                output_loss += tf.reduce_mean(tf.pow(_y - _Y, 2))
+            """Loss step"""
+            with tf.compat.v1.variable_scope('Loss'):
+                # L2 loss
+                output_loss = 0
+                for _y, _Y in zip(reshaped_outputs, target_seq):
+                    output_loss += tf.reduce_mean(tf.pow(_y - _Y, 2))
 
-            # L2 regularization for weights and biases
-            reg_loss = 0
-            for tf_var in tf.compat.v1.trainable_variables():
-                if 'Biases_' in tf_var.name or 'Weights_' in tf_var.name:
-                    reg_loss += tf.reduce_mean(tf.nn.l2_loss(tf_var))
+                # L2 regularization for weights and biases
+                reg_loss = 0
+                for tf_var in tf.compat.v1.trainable_variables():
+                    if 'Biases_' in tf_var.name or 'Weights_' in tf_var.name:
+                        reg_loss += tf.reduce_mean(tf.nn.l2_loss(tf_var))
 
-            loss = output_loss + self.LAMBDA_L2_REG * reg_loss
+                loss = output_loss + self.LAMBDA_L2_REG * reg_loss
 
-        with tf.compat.v1.variable_scope('Optimizer'):
-            optimizer = tf.contrib.layers.optimize_loss(
-                loss=loss,
-                learning_rate=self.LEARNING_RATE,
-                global_step=global_step,
-                optimizer='Adam',
-                clip_gradients=self.GRADIENT_CLIPPING)
+            with tf.compat.v1.variable_scope('Optimizer'):
+                optimizer = tf.contrib.layers.optimize_loss(loss=loss,
+                                                            learning_rate=self.LEARNING_RATE,
+                                                            global_step=global_step,
+                                                            optimizer='Adam',
+                                                            clip_gradients=self.GRADIENT_CLIPPING)
+            saver = tf.compat.v1.train.Saver
+            print("[Build Graph With Attention Return]{}".format(
+                dict(enc_inp=enc_inp, target_seq=target_seq, train_op=optimizer,
+                     loss=loss, saver=saver, reshaped_outputs=reshaped_outputs, attn_outputs=attn_outputs)))
 
-        saver = tf.compat.v1.train.Saver
-
-        print("[Build Graph With Attention Return]{}".format(dict(enc_inp=enc_inp, target_seq=target_seq, train_op=optimizer,
-                    loss=loss, saver=saver, reshaped_outputs=reshaped_outputs, attn_outputs=attn_outputs)))
-
-        return dict(enc_inp=enc_inp,target_seq=target_seq,train_op=optimizer,
-                    loss=loss,saver=saver,reshaped_outputs=reshaped_outputs, attn_outputs=attn_outputs)
+            return dict(enc_inp=enc_inp, target_seq=target_seq, train_op=optimizer,
+                        loss=loss, saver=saver, reshaped_outputs=reshaped_outputs, attn_outputs=attn_outputs)
 
     def build_Autoencoder(self, INPUT_DIM):
         print("[Build AutoEncoder] Input Dimension : {} - Layers : {} - Percentage : {} - Feed Previous : {} - Dropout : {}"
@@ -849,8 +936,11 @@ class DEEPMODEL():
             with tf.compat.v1.Session() as sess:
                 sess.run(init)
                 for oo_ in range(self.TOTAL_ITERATION):
-                    batch_input, _ = self.generate_train_samples(self.X_train, self.y_train, self.INPUT_SEQ_LEN, self.OUTPUT_SEQ_LEN,
-                                                            batch_size=self.BATCH_SIZE)
+                    batch_input, _ = self.generate_train_samples(x=self.X_train,
+                                                                 y=self.y_train,
+                                                                 input_seq_len=self.INPUT_SEQ_LEN,
+                                                                 output_seq_len=self.OUTPUT_SEQ_LEN,
+                                                                 batch_size=self.BATCH_SIZE)
                     feed_dict = {model['enc_inp'][t]: batch_input[:, t] for t in range(self.INPUT_SEQ_LEN)}
                     _, loss_t = sess.run([model['train_op'], model['loss']], feed_dict)
 
@@ -860,8 +950,10 @@ class DEEPMODEL():
                                                                             '%Y-%m-%d %H:%M:%S')))
                         loss_fun.append([oo_, loss_t])
                     if loss_t < 0.001:
+                        print("[{}] Loss cut : {}".format(oo_, loss_t))
                         break
                     if pd.isnull(loss_t) == True:
+                        print("Loss is null")
                         break
                 temp_saver = model['saver']()
                 save_path = temp_saver.save(sess, "{}/Model_AutoEncoder_Outdoor_{}_Indoor_{}".format(save, out_unit, ind_unit))
@@ -870,13 +962,15 @@ class DEEPMODEL():
                 print("AutoEncoder Completed! (Train Process)")
 
         elif self.method == "Attention":
+            print("Attention Start! (Train Process)")
             with tf.compat.v1.Session() as sess:
                 sess.run(init)
-
-                # print("Training losses: ")
                 for oo_ in range(self.TOTAL_ITERATION):
-                    batch_input, batch_output = self.generate_train_samples(self.X_train, self.y_train, self.INPUT_SEQ_LEN, self.OUTPUT_SEQ_LEN,
-                                                                       batch_size=self.BATCH_SIZE)
+                    batch_input, batch_output = self.generate_train_samples(x=self.X_train,
+                                                                            y=self.y_train,
+                                                                            input_seq_len=self.INPUT_SEQ_LEN,
+                                                                            output_seq_len=self.OUTPUT_SEQ_LEN,
+                                                                            batch_size=self.BATCH_SIZE)
                     feed_dict = {model['enc_inp'][t]: batch_input[:, t] for t in range(self.INPUT_SEQ_LEN)}
                     feed_dict.update({model['target_seq'][t]: batch_output[:, t] for t in range(self.OUTPUT_SEQ_LEN)})
                     attn_outputs = sess.run(model['attn_outputs'], feed_dict)
@@ -1108,7 +1202,6 @@ LAMBDA_L2_REG = 0.003
 
 TOTAL_ITERATION = 5000
 
-
 TIME = 'updated_time' # 시계열 컬럼 이름
 start ='2021-01-01' #데이터 시작시간
 end = '2021-03-31' #데이터 끝시간
@@ -1117,7 +1210,7 @@ test_start_time = '2021-03-27' #테스트 데이터 시작 시간
 #예측하고자하는 값
 TARGET = "room_temp"
 
-#
+# 클래스 안에서 사용한 공통 언어
 SIGNAL = 'indoor_power'
 meterValue = 'value'
 TspValue = 'set_temp'
