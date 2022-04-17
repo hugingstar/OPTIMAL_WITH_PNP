@@ -103,6 +103,12 @@ class DEEPMODEL():
         return input_seq, output_seq
 
     def build_graph(self, INPUT_DIM, OUTPUT_DIM):
+        """
+        이 메소드는 Seq2seq 모델 그래프이다.
+        :param INPUT_DIM: 입력 디멘젼
+        :param OUTPUT_DIM: 출력 디멘젼
+        :return: dictionary 형태의 파라미터 모아둔 것
+        """
         print("[Build Graph] Input Dimension : {} - Output dimension : {} - Feed Previous : {} - Dropout : {}"
               .format(INPUT_DIM, OUTPUT_DIM, self.FEED_PREVIOUS, self.DROPOUT))
 
@@ -409,24 +415,23 @@ class DEEPMODEL():
             with variable_scope.variable_scope("attn_mechanism"):  # attention mechanism
                 with tf.variable_scope("attn_score"):  # attention score
                     trs_dec_outputs = tf.transpose(dec_outputs, perm=[0, 2, 1])
-                    print("[trs_dec_outputs] {} - {} - {}".format(trs_dec_outputs.get_shape(), type(trs_dec_outputs),
-                                                                  trs_dec_outputs))
+                    print("[trs_dec_outputs] {} - {} - {}".format(trs_dec_outputs.get_shape(), type(trs_dec_outputs), trs_dec_outputs))
                     score = tf.matmul(enc_outputs, trs_dec_outputs)  # dot product : 마지막 state,
+                    # score = tf.multiply(score, tf.math.sqrt(float(self.INPUT_DIM)))
+                    # score = tf.nn.relu(score, name="score")
                     print("[score] {} - {} - {}".format(score.get_shape(), type(score), score))
                 with tf.variable_scope("attn_align"):  # softmax - attention distribution - attention weight
                     alphas = tf.nn.softmax(score, name="alphas")  # 총합이 1이 되도록 alignment 실행
                     print("[alphas] {} - {} - {}".format(type(alphas), alphas.shape, alphas))  # 시간의 가중치
-                    # alphas_argmax = tf.argmax(alphas, axis=2, name="outputs_argmax", output_type=tf.int32)  # [B, T2]
-                    # outputs = tf.gather_nd(params=enc_inp, indices=_index_matrix_to_pairs(alphas_argmax))
                 with tf.variable_scope("context_vector"):  # attention outputs
-                    context_vec = tf.reduce_sum(tf.matmul(alphas, enc_outputs), axis=1,
-                                                name="context")  # Transpose, 곱하는 순서
+                    context_vec = tf.reduce_sum(tf.matmul(alphas, enc_outputs), axis=1, name="context")  # Transpose, 곱하는 순서
                     print("[context_vec] {} - {} - {}".format(type(context_vec), context_vec.shape, context_vec))
-                    context_vec = tf.expand_dims(context_vec, axis=1, name="context_vec")
+                    context_vec = tf.expand_dims(context_vec, axis=1, name="context_vec") # 연산을 위해 차원을 정렬해준다
                     print("[context_vec] {} - {} - {}".format(type(context_vec), context_vec.shape, context_vec))
                     print("[dec_outputs] {} - {} - {}".format(type(dec_outputs), dec_outputs.shape, dec_outputs))
                 with tf.variable_scope("attn_outputs"):
                     attn_outputs = tf.multiply(context_vec, dec_outputs)
+                    # attn_outputs = tf.nn.tanh(attn_outputs, name="attn_outputs")
                     print("[attn_outputs] {} - {} - {}".format(type(attn_outputs), attn_outputs.get_shape(),
                                                                attn_outputs))
                     attn_dec_outputs_list = []
@@ -440,8 +445,8 @@ class DEEPMODEL():
             print("[biases['out']] {} - {}".format(type(biases['out']), biases['out']))
             for k in attn_dec_outputs_list:  # 확인용
                 print(k)
-            reshaped_outputs = [tf.matmul(i, weights['out']) + biases['out'] for i in
-                                attn_dec_outputs_list]  # attention
+            # reshaped_outputs = [tf.matmul(i, weights['out']) + biases['out'] for i in attn_dec_outputs_list]  # attention
+            reshaped_outputs = [tf.nn.tanh(tf.matmul(i, weights['out']) + biases['out']) for i in attn_dec_outputs_list]
             print("[reshaped_outputs] {} - {} - {}".format(len(reshaped_outputs), type(reshaped_outputs),
                                                            reshaped_outputs))
 
@@ -627,6 +632,7 @@ class DEEPMODEL():
 
             """실내기와 실외기 데이터 합친거"""
             self.data = pd.concat([self._outdata, self._indata], axis=1)
+            self.data.index.names = [self.TIME]
 
             """문자열로 되어 있는 정보는 숫자로 대체"""
             self.data = self.data.replace({"High": 3, "Mid" : 2, "Low" : 1, "Auto" : 4})
@@ -697,6 +703,9 @@ class DEEPMODEL():
             # self.data.at[self.data.index[-1], "{}_and_zone_difference".format(self.zone_temp)] = f_o
             self.data.at[self.data.index[-1], "{}_and_oa_difference".format(self.set_temp)] = g_o
 
+            self.data = self.data.sort_values(self.TIME)
+            self.data = self.data.fillna(method='ffill')
+
             #저장할 총 경로
             save = "{}/Deepmodel/{}({})/{}/{}".format(self.SAVE_PATH, self.method, self.imp_method, self.folder_name, out_unit)
             self.create_folder(save)
@@ -729,8 +738,8 @@ class DEEPMODEL():
             # self.features = list(self.data.columns.difference([self.target]))
 
             """필요한 컬럼만을 넣어서 데이터 셋을 만든다."""
-
             df = self.data[self.features]
+
 
             df.to_csv("{}/After_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))  # 조건 적용 후
             df.index = pd.to_datetime(df.index)
@@ -827,7 +836,7 @@ class DEEPMODEL():
                                                           input_seq_len=self.INPUT_SEQ_LEN,
                                                           output_seq_len=self.OUTPUT_SEQ_LEN)
 
-            if self.method == "seq2seq":
+            if self.method == "Seq2seq":
                 #Normal Seq2seq Model : 시퀀스-투-시퀀스 모델 기초형태는 그래프를 그리고 테스트를 하면 종료가된다.
                 self.FEED_PREVIOUS = False
                 rnn_model = self.build_graph(INPUT_DIM=int(self.X_train.shape[1]), OUTPUT_DIM=int(self.y_train.shape[1]))
@@ -858,7 +867,7 @@ class DEEPMODEL():
                 self.test_x, self.test_y = self.generate_test_samples(self.X_test, self.y_test, self.INPUT_SEQ_LEN, self.OUTPUT_SEQ_LEN)
 
                 #Normal Seq2seq Model
-                self.method = "seq2seq" # 오토인코더가 완료된 후 TRAIN_PROCESS, TEST_PROCESS에 사용된다.
+                self.method = "Seq2seq" # 오토인코더가 완료된 후 TRAIN_PROCESS, TEST_PROCESS에 사용된다.
                 self.FEED_PREVIOUS = False
                 self.DROPOUT = 0.5
                 rnn_model = self.build_graph(INPUT_DIM=int(self.X_train.shape[1]), OUTPUT_DIM=int(self.y_train.shape[1]))
@@ -887,7 +896,7 @@ class DEEPMODEL():
     def TRAIN_PROCESS(self, model, out_unit, save, ind_unit):
         init = tf.compat.v1.global_variables_initializer()
         loss_fun = []
-        if self.method =="seq2seq":
+        if self.method =="Seq2seq":
             print("Seq2seq Start! (Train Process)")
             with tf.compat.v1.Session() as sess:
                 sess.run(init)  # 초기화
@@ -998,7 +1007,7 @@ class DEEPMODEL():
 
     def TEST_PROCESS(self, model, save, out_unit, ind_unit):
         init = tf.compat.v1.global_variables_initializer()
-        if self.method == "seq2seq":
+        if self.method == "Seq2seq":
             print("Seq2seq start! (Test Process)")
             with tf.compat.v1.Session() as sess:
                 sess.run(init)
@@ -1185,7 +1194,7 @@ class DEEPMODEL():
 INPUT_SEQ_LEN = 10
 OUTPUT_SEQ_LEN = 10
 BATCH_SIZE = 500
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.001
 
 HIDDEN_DIM = 128
 NUM_STACK_LAYERS = 4
@@ -1203,9 +1212,9 @@ LAMBDA_L2_REG = 0.003
 TOTAL_ITERATION = 5000
 
 TIME = 'updated_time' # 시계열 컬럼 이름
-start ='2021-01-01' #데이터 시작시간
-end = '2021-03-31' #데이터 끝시간
-test_start_time = '2021-03-27' #테스트 데이터 시작 시간
+start ='2021-07-01' #데이터 시작시간
+end = '2021-09-30' #데이터 끝시간
+test_start_time = '2021-09-26' #테스트 데이터 시작 시간
 
 #예측하고자하는 값
 TARGET = "room_temp"
@@ -1217,9 +1226,9 @@ TspValue = 'set_temp'
 # TzValue =  'room_temp'
 ToaValue = 'outdoor_temp'
 
-METHOD = "Attention" #"Seq2seq" ,"Attention"
+METHOD = "Seq2seq" #"Seq2seq" ,"Attention", "AutoEncoder"
 # 특징중요도 메소드
-IMP_METHOD = "Adaboosting"
+IMP_METHOD = "Randomforest" #"Randomforest","Adaboosting","Gradientboosting"
 
 NumOfFeatures = 5
 

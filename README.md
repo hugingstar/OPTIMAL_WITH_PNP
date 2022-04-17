@@ -25,7 +25,8 @@
 ### 4. Method
 * DEEPGRAPH.py : 딥러닝 모델의 그래프를 만들고 예측 결과를 살펴본다.
     * Update (22.04.14) : gpu 사용 추가
-    * Update (22.04.15) : AutoEncoder/Attention Layer 추가하였다. 
+    * Update (22.04.15) : AutoEncoder/Attention Layer 추가하였다.
+    * Update (22.04.18) : 데이터의 index 명이 누락되는 문제를 보안하였다. 또한, 결측값 발생시 모델 생성이 안되는 문제를 보완하였다.
     * AutoEncoder 같은 경우에는 기존 Seq2seq 대비 성능이 좋다. 
     * Attention Layer는 현재 값이 예측을 못하는 상태이다.(변화 폭이 너무 큰 상태임.)
 * SIEMENS.py : 회귀식 기반의 에어컨 최적가동시간을 예측하는 모델

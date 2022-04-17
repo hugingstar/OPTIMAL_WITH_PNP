@@ -278,8 +278,8 @@ class ENSEMBLE():
         except OSError:
             print('Error: creating directory. ' + directory)
 
-start = '2021-01-01'
-end = '2021-03-31'
+start = '2021-07-01'
+end = '2021-09-30'
 
 """Hyperparameters"""
 time ="updated_time" #시계열 인덱스
@@ -300,8 +300,8 @@ meterValue = 'value' # 미터기 값
 TspValue = 'set_temp' # 설정 온도
 TzValue =  'room_temp' # 방 온도
 ToaValue = 'outdoor_temp' # 외기 온도도
-PREDMIN = [10, 30, 60]
-METHOD = "Gradientboosting" #Randomforest, Adaboosting, Gradientboosting, Decisiontree
+PREDMIN = [10]
+METHOD = "Randomforest" #Randomforest, Adaboosting, Gradientboosting, Decisiontree
 
 for j in PREDMIN:
     ens = ENSEMBLE(time=time, TRAIN_SIZE=TRAIN_SIZE, N_ESTIMATION=N_ESTIMATION,
