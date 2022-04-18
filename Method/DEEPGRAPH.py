@@ -48,6 +48,7 @@ class DEEPMODEL():
                    3120, 3122, 3130]
         }
 
+        #HyperPrameter
         self.LEARNING_RATE = LEARNING_RATE
         self.LAMBDA_L2_REG = LAMBDA_L2_REG
         self.INPUT_SEQ_LEN = INPUT_SEQ_LEN
@@ -60,9 +61,12 @@ class DEEPMODEL():
         self.GRADIENT_CLIPPING = GRADIENT_CLIPPING
         self.KEEP_RATE = KEEP_RATE
         self.TOTAL_ITERATION = TOTAL_ITERATION
+
+        # AutoEncoder HyperParameter
         self.LAYERS = LAYERS
         self.PERCENTAGE = PERCENTAGE
 
+        #Time range Setting
         self.start = start
         self.end = end
         self.test_start_time = test_start_time
@@ -77,11 +81,13 @@ class DEEPMODEL():
         self.test_month = test_start_time[5:7]
         self.test_date = test_start_time[8:10]
 
+        # 시작전에 폴더를 생성
         self.folder_name = "{}-{}-{}".format(self.start_year, self.start_month, self.start_date)
-        self.create_folder('{}/Deepmodel'.format(self.SAVE_PATH))
+        self.create_folder('{}/Deepmodel'.format(self.SAVE_PATH)) # Deepmodel 폴더를 생성
 
 
     def generate_train_samples(self, x, y, input_seq_len, output_seq_len, batch_size):
+        #이 함수는 Training Sample을 생성하는 코드이다.
         total_start_points = len(x) - input_seq_len - output_seq_len
         # print("[generate_train_samples] total_start_points : {}".format(total_start_points))
         start_x_idx = np.random.choice(range(total_start_points), batch_size, replace=False)
@@ -93,6 +99,7 @@ class DEEPMODEL():
         return input_seq, output_seq  # in shape: (batch_size, time_steps, feature_dim)
 
     def generate_test_samples(self, x, y, input_seq_len, output_seq_len):
+        # 이 함수는 테스트 셋을 만드는 함수이다.
         total_samples = x.shape[0]
         input_batch_idxs = [list(range(i, i + input_seq_len)) for i in
                             range((total_samples - input_seq_len - output_seq_len))]
@@ -104,7 +111,7 @@ class DEEPMODEL():
 
     def build_graph(self, INPUT_DIM, OUTPUT_DIM):
         """
-        이 메소드는 Seq2seq 모델 그래프이다.
+        이 메소드는 Seq2seq 모델 그래프이다. 입력 값으로는 만들어진 데이터의 차원(X 변수 개수) 값이 입력된다.
         :param INPUT_DIM: 입력 디멘젼
         :param OUTPUT_DIM: 출력 디멘젼
         :return: dictionary 형태의 파라미터 모아둔 것
@@ -238,6 +245,11 @@ class DEEPMODEL():
                     loss=loss, saver=saver, reshaped_outputs=reshaped_outputs)
 
     def build_graph_With_Attention(self, INPUT_DIM, OUTPUT_DIM):
+        """
+        :param INPUT_DIM: 입력값 차원 (X 변수의 개수)
+        :param OUTPUT_DIM: 출력 차원(예측 하고자하는 것 ex. 실내 온도 차원 1)
+        :return: 그래프 관련 값의 딕셔너리
+        """
         print("[Build Graph With Attention] Input Dimension : {} - Output dimension : {} - Feed Previous : {} - Dropout : {}"
               .format(INPUT_DIM, OUTPUT_DIM, self.FEED_PREVIOUS, self.DROPOUT))
 
@@ -480,6 +492,14 @@ class DEEPMODEL():
                         loss=loss, saver=saver, reshaped_outputs=reshaped_outputs, attn_outputs=attn_outputs)
 
     def build_Autoencoder(self, INPUT_DIM):
+        """
+        오토인코더 그래프이다. 오토인코더 그래프로 입력 데이터의 차원을 낮추거나 높여서 예측 성능을 높일 수 있는
+        입력 데이터를 만든다. 이후에 Seq2seq를 후행으로 배치하여 모델을 학습하고 테스트해보는 것이다.
+        즉, 아래에 DEEP_PROCESSING 함수에서 AutoEncoder 란을 확인하면 self.method가 AutoEncoder가 실행된 후에
+        바로 Seq2seq가 실행되도록 되어 있다.
+        :param INPUT_DIM: 입력값으로는 입력 데이터 차원(X 개수)이 있다.
+        :return: 오토인코더의 파라미터 딕셔너리
+        """
         print("[Build AutoEncoder] Input Dimension : {} - Layers : {} - Percentage : {} - Feed Previous : {} - Dropout : {}"
               .format(INPUT_DIM, self.LAYERS, self.PERCENTAGE, self.FEED_PREVIOUS, self.DROPOUT))
 
@@ -603,6 +623,11 @@ class DEEPMODEL():
                     enc_output=enc_output, saver=saver)
 
     def create_folder(self, directory):
+        """
+        폴더를 생성하는 함수이다.
+        :param directory: 디렉토리 입력
+        :return: 폴더가 생성되어 있을 것이다.
+        """
         try:
             if not os.path.exists(directory):
                 os.makedirs(directory)
@@ -611,11 +636,30 @@ class DEEPMODEL():
 
     def DEEP_PROCESSING(self, out_unit, signal, meterValue, TspValue, ToaValue,
                         target, method, IMP_METHOD, NumOfFeatures):
+        """
+        이 함수는 그래프를 호출, 모델 트레이닝 진행, 테스트 진행을 관장하는 함수이다.
+        :param out_unit: 실외기 넘버 (실외기에 연결된 실내기는 위의 딕셔너리에서 호출한다.)
+        :param signal: ON-OFF 시그널
+        :param meterValue: 미터 값 어구
+        :param TspValue: 설정 온도 어구
+        :param ToaValue: 실외 온도 어구
+        :param target: 타겟 값
+        :param method: 딥러닝 학습 방법 (Seq2seq ,Attention, AutoEncoder)
+        :param IMP_METHOD: 특징중요도 학습 방법
+        (Randomforest, Randomforest, Adaboosting, Gradientboosting)
+        :param NumOfFeatures: 특징중요도 결과에서 상위 몇 개를 선택할지를 결정할 숫자
+        :return:
+        """
+        #딥러닝 모델 생성 method 입력값
         self.method = method
+
+        #특징중요도 방법 입력값
         self.imp_method = IMP_METHOD
+
+        #예측 대상
         self.target = target
 
-        """건물을 인식"""
+        # 건물 인식(딕셔너리에서 포함된 건물로 인식한다.)
         if out_unit in self.jinli.keys():
             self.bldg_name ="Jinli"
             self.bldginfo = self.jinli
@@ -623,27 +667,32 @@ class DEEPMODEL():
             self.bldg_name = "Dido"
             self.bldginfo = self.dido
 
-        """실외기 데이터"""
+        #실외기 데이터
         self._outdpath = "{}/{}/Outdoor_{}.csv".format(self.DATA_PATH, self.folder_name, out_unit)
         self._outdata = pd.read_csv(self._outdpath, index_col=self.TIME)
         for indv in list(self.bldginfo[out_unit]):
+            #실내기 데이터
             self._indpath = "{}/{}/{}/Outdoor_{}_Indoor_{}.csv".format(self.DATA_PATH, self.folder_name, out_unit, out_unit, indv)
             self._indata = pd.read_csv(self._indpath, index_col=self.TIME)
 
-            """실내기와 실외기 데이터 합친거"""
+            #실내기 및 실외기의 데이터 통합
             self.data = pd.concat([self._outdata, self._indata], axis=1)
-            self.data.index.names = [self.TIME]
+            self.data.index.names = [self.TIME] # 인덱스 컬럼명이 없는 경우를 대비하여 보완
 
-            """문자열로 되어 있는 정보는 숫자로 대체"""
+            #문자열로 된 원본 데이터의 '모드'를 숫자로 변환
             self.data = self.data.replace({"High": 3, "Mid" : 2, "Low" : 1, "Auto" : 4})
 
-            # 관련 컬럼 불러 내기
+            # 메타데이터의 풀 네임은 아주 길기 때문에 해당 어구가 포함된 컬럼 찾아서 모델 학습에 사용한다.
+            # ON-OFF 시그널
             self.onoffsignal = list(pd.Series(list(self.data.columns))[
                                         pd.Series(list(self.data.columns)).str.contains(pat=signal, case=False)])[0]
+            # 미터 값
             self.meter_value = list(pd.Series(list(self.data.columns))[
                                         pd.Series(list(self.data.columns)).str.contains(pat=meterValue, case=False)])[0]
+            #설정 온도
             self.set_temp = list(pd.Series(list(self.data.columns))[
                                         pd.Series(list(self.data.columns)).str.contains(pat=TspValue, case=False)])[0]
+            # 외기 온도
             self.outdoor_temp =list(pd.Series(list(self.data.columns))[
                                         pd.Series(list(self.data.columns)).str.contains(pat=ToaValue, case=False)])[0]
 
@@ -654,7 +703,7 @@ class DEEPMODEL():
                 b_o = int(self.data[self.onoffsignal][o + 1]) # 전원 다음 값
 
                 c_o = round(self.data[self.meter_value][o + 1] - self.data[self.meter_value][o], 3) # 미터 값의 차이
-
+                # 구역 온도를 예측해야하므로 주석처리 해놓음
                 # d_o = round(self.data[self.zone_temp][o + 1] - self.data[self.set_temp][o], 3) # 설정온도_구역온도 차이
                 #
                 # e_o = round(self.data[self.zone_temp][o + 1] - self.data[self.outdoor_temp][o], 3) # 외기온도_구역온도 차이
@@ -703,53 +752,60 @@ class DEEPMODEL():
             # self.data.at[self.data.index[-1], "{}_and_zone_difference".format(self.zone_temp)] = f_o
             self.data.at[self.data.index[-1], "{}_and_oa_difference".format(self.set_temp)] = g_o
 
+            # 데이터 생성된것을 시계열을 기준으로 정렬 하고 결측값 처리
             self.data = self.data.sort_values(self.TIME)
-            self.data = self.data.fillna(method='ffill')
+            self.data = self.data.fillna(method='ffill') #결측값 처리
 
             #저장할 총 경로
             save = "{}/Deepmodel/{}({})/{}/{}".format(self.SAVE_PATH, self.method, self.imp_method, self.folder_name, out_unit)
             self.create_folder(save)
             self.data.to_csv("{}/Before_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))  # 조건 적용 전
 
-            """조건을 적용"""
+            """필요한 경우 조건을 적용하는 장소이다."""
             # self.data = self.data[self.data[self.onoffsignal] == 1] #작동중인 데이터만 사용
-            # self.data = self.data.dropna(axis=0)
+            # self.data = self.data.dropna(axis=0) # 결측값을 그냥 날리는 경우
 
             self.data.to_csv("{}/After_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))  # 조건 적용 후
             # print(out_unit, i, self.data.shape)
 
-            #해당 문자열이 포함되면 그것이 타겟이 된다.
+            #예측할 타겟 결정 : 해당 문자열이 포함되면 그것이 타겟이 된다.
             self.target = list(pd.Series(list(self.data.columns))[
                                         pd.Series(list(self.data.columns)).str.contains(pat=target, case=False)])[0]
             print("[Target column name] {}".format(self.target))
 
-            # Feature importance 출력값을 사용하여 특징 중요도가 높은 순서대로
-            # 모델 학습에 사용
+            # 조건 1 : Feature importance 출력값을 사용하여 특징 중요도가 높은 순서대로 모델 학습에 사용
             self._imppath = "{}/Ensemble/{}/{}/{}/IMP_Outdoor_{}_Indoor_{}.csv".format(self.SAVE_PATH, self.imp_method, self.folder_name, out_unit, out_unit, indv)
             self._impdata = pd.read_csv(self._imppath, index_col='Unnamed: 0')
-            self._impdata= self._impdata.transpose()
-
-            #Feature importance를 고려한다면,
+            self._impdata= self._impdata.transpose() #결과값은 가로로 되어있으므로 전치
+            #Feature importance를 고려한다면
             self.features_all = list(self._impdata.sort_values(by=0, ascending=False).index)
+            # 이 함수는 NumOfFeatures 개수를 입력값으로 받는다.
+            # NumOfFeatures=5라는 것은 상위 5개의 컬럼을 모델 학습에 사용한다는 의미이다.
             self.features = self.features_all[:NumOfFeatures] # 중요도가 큰 것 NumOfFeatures개만 사용한다.
             print("[Selected Features] {} - {}".format(len(self.features), self.features))
 
-            # 타겟을 제외한 나머지는 독립변수
+            # 조건 2 :Feature importance 고려안함 : 타겟을 제외한 나머지는 독립변수(현재는 주석 처리)
             # self.features = list(self.data.columns.difference([self.target]))
 
-            """필요한 컬럼만을 넣어서 데이터 셋을 만든다."""
+            # 필요한 컬럼만을 넣어서 데이터 셋을 만든다
             df = self.data[self.features]
 
+            # 적용한 조건 확인용
+            df.to_csv("{}/After_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))
 
-            df.to_csv("{}/After_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))  # 조건 적용 후
+            # 주기성 적용 : 시간은 연속적이며 일정한 주기를 가지고 있는 데이터이다.
+            # 2*pi/x에서
+            # month : x=12 / week : x=52
+            # hour : x=24 / minute : x=60
             df.index = pd.to_datetime(df.index)
-            df.loc[:, 'hr_sin'] = np.round(np.sin(df.index.hour * (2. * np.pi / 24)), decimals=2) # 시계열 특성을 포함하기 위한 컬럼
-            df.loc[:, 'hr_cos'] = np.round(np.cos(df.index.hour * (2. * np.pi / 24)), decimals=2)
-            df.loc[:, 'wk_sin'] = np.round(np.sin((df.index.weekday - 1) * (2. * np.pi / 12)), decimals=2)
-            df.loc[:, 'wk_cos'] = np.round(np.cos((df.index.weekday - 1) * (2. * np.pi / 12)), decimals=2)
+            df.loc[:, 'week_sin'] = np.round(np.sin((df.index.weekday() - 1) * (2. * np.pi / 12)), decimals=2)
+            df.loc[:, 'week_cos'] = np.round(np.cos((df.index.weekday() - 1) * (2. * np.pi / 12)), decimals=2)
+            df.loc[:, 'hour_sin'] = np.round(np.sin(df.index.hour * (2. * np.pi / 24)), decimals=2)
+            df.loc[:, 'hour_cos'] = np.round(np.cos(df.index.hour * (2. * np.pi / 24)), decimals=2)
             df.loc[:, self.target] = self.data.loc[:, self.target].copy()
             df.loc[:, 'inputy'] = self.data.loc[:, self.target].copy()
 
+            #원본 데이터 중에서 TrainSet과 TestSet을 분리한다.
             # TST : 테스트 셋을 시작하는 시간 길이
             TST =  datetime.datetime(int(self.test_year), int(self.test_month), int(self.test_date))
             df_train = df.loc[df.index <= TST]
@@ -767,15 +823,18 @@ class DEEPMODEL():
             df_train.to_csv("{}/BldgRawData_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv), sep=',', float_format='%.2f')
             df_test.to_csv("{}/BldgRawData_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv), sep=',', float_format='%.2f')
 
-            # 시계열을 제거했다.
-            df_train = df_train.reset_index().drop(self.TIME, 1) #TST 이전
+            # 시계열을 제거
+            df_train = df_train.reset_index().drop(self.TIME, 1) # TST 이전
             df_test = df_test.reset_index().drop(self.TIME, 1) # TST 이후
 
             #x_col: 최종적으로 학습에 들어가는 Feature list
+            # 시계열 인덱스는 제거되었다. 대신 주기성이 포함되어 있으므로 시간의 주기성을 고려하였음.
             x_col = list(df_train.columns)
             x_col.remove(self.target)
 
-            # 시계열 인덱스는 제거되었다.
+            # self.X_train, self.X_test, self.y_train, self.y_test 를 전역변수로 사용하였다는 것은 많은 의미를 가지고 있다.
+            # 만약 오토 인코더를 적용해야 한다면, 이 변수들을 인코딩 된 값으로 갱신해줘야 하기 때문이다.
+            # 알고리즘 내에서 코딩 길이를 줄이려면 이 부분을 잘 만져주어야 한다.
             self.X_train = df_train[x_col].values.copy() # X_train : TST 데이터 이전의 데이터
             y_train = df_train[self.target].values.copy().reshape(-1, 1) # y_train : TST 이전의 타겟 값
             self.X_test = df_test[x_col].values.copy() # X_test : TST 이후의 데이터
@@ -816,17 +875,20 @@ class DEEPMODEL():
             norm_param = pd.DataFrame(param, index=['mean', 'std'], columns=param_col)
             norm_param.to_csv("{}/Normalize_parameter_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))
 
+            # 입력 데이터를 저장
             pd.DataFrame(self.X_train).to_csv("{}/Xtrain_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))
             pd.DataFrame(self.y_train).to_csv("{}/ytrain_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))
             pd.DataFrame(self.X_test).to_csv("{}/Xtest_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))
             pd.DataFrame(self.y_test).to_csv("{}/ytrain_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))
 
-            # 확인용
+            # 훈련샘플 만들어졌는지 데이터 확인용
             # x, y = self.generate_train_samples(x=self.X_train, y=self.y_train,
             #                                    input_seq_len=self.INPUT_SEQ_LEN,
             #                                    output_seq_len=self.OUTPUT_SEQ_LEN,
             #                                    batch_size=self.BATCH_SIZE)
 
+            # 훈련 셋이 만들어지는 단계이다. 이 단계에서는 self.X_train, self.X_test 값을 사용하기 때문에
+            # 입력되는 값이 어떤 처리 과정을 거쳐서 만들어진 입력값인지 분명히 할 필요가 있다.(오토인코더)
             self.test_x, self.test_y = self.generate_test_samples(x=self.X_test, y=self.y_test,
                                                         input_seq_len=self.INPUT_SEQ_LEN,
                                                         output_seq_len=self.OUTPUT_SEQ_LEN)
@@ -836,7 +898,8 @@ class DEEPMODEL():
                                                           input_seq_len=self.INPUT_SEQ_LEN,
                                                           output_seq_len=self.OUTPUT_SEQ_LEN)
 
-            if self.method == "Seq2seq":
+            if self.method in ["Seq2seq", "seq2seq"]:
+                self.method = "Seq2seq"
                 #Normal Seq2seq Model : 시퀀스-투-시퀀스 모델 기초형태는 그래프를 그리고 테스트를 하면 종료가된다.
                 self.FEED_PREVIOUS = False
                 rnn_model = self.build_graph(INPUT_DIM=int(self.X_train.shape[1]), OUTPUT_DIM=int(self.y_train.shape[1]))
@@ -848,7 +911,8 @@ class DEEPMODEL():
                 test_model = self.build_graph(INPUT_DIM=int(self.X_test.shape[1]), OUTPUT_DIM=int(self.y_test.shape[1]))
                 self.TEST_PROCESS(model=test_model, save=save, out_unit=out_unit, ind_unit=indv)
 
-            elif self.method == "AutoEncoder":
+            elif self.method in ["AutoEncoder", "autoencoder"]:
+                self.method = "AutoEncoder"
                 #AutoEncoder Model : 오토인코더 모델은 오토인코더 모델을 만들고 그 모델을 사용하여 테스트한다.
                 # 그 후에 오토인코더로 입력 데이터를 만들어 진 것을 가지고 Seq2seq 모델을 돌린다.
                 self.FEED_PREVIOUS = False
@@ -878,8 +942,10 @@ class DEEPMODEL():
                 self.DROPOUT = 0
                 test_model = self.build_graph(INPUT_DIM=int(self.X_test.shape[1]), OUTPUT_DIM=int(self.y_test.shape[1]))
                 self.TEST_PROCESS(model=test_model, save=save, out_unit=out_unit, ind_unit=indv)
+                self.method = "AutoEncoder" # 오토인코더 저장위치를 정확히 지정하기 위해서 초기화시켜준다.
 
-            elif self.method == "Attention":
+            elif self.method in ["Attention", "attention"]:
+                self.method = "Attention"
                 #Normal Seq2seq Model : 시퀀스-투-시퀀스 모델 기초형태는 그래프를 그리고 테스트를 하면 종료가된다.
                 self.FEED_PREVIOUS = False
                 rnn_model = self.build_graph_With_Attention(INPUT_DIM=int(self.X_train.shape[1]), OUTPUT_DIM=int(self.y_train.shape[1]))
@@ -891,12 +957,11 @@ class DEEPMODEL():
                 test_model = self.build_graph_With_Attention(INPUT_DIM=int(self.X_test.shape[1]), OUTPUT_DIM=int(self.y_test.shape[1]))
                 self.TEST_PROCESS(model=test_model, save=save, out_unit=out_unit, ind_unit=indv)
 
-
-
     def TRAIN_PROCESS(self, model, out_unit, save, ind_unit):
         init = tf.compat.v1.global_variables_initializer()
         loss_fun = []
-        if self.method =="Seq2seq":
+        if self.method in ["Seq2seq", "seq2seq"]:
+            self.method = "Seq2seq"
             print("Seq2seq Start! (Train Process)")
             with tf.compat.v1.Session() as sess:
                 sess.run(init)  # 초기화
@@ -939,7 +1004,8 @@ class DEEPMODEL():
             loss_result.to_csv('{}/lossResult_Outdoor_{}_Indoor_{}.csv'.format(save, out_unit, ind_unit))
             print("Seq2seq Completed! (Train Process)")
 
-        elif self.method == "AutoEncoder":
+        elif self.method in ["AutoEncoder", "autoencoder"]:
+            self.method = "AutoEncoder"
             print("AutoEncoder Start! (Train Process)")
             #오토인코더를 만든 다음에 그 데이터를 Seq2seq로 집어넣는 개념이다.
             with tf.compat.v1.Session() as sess:
@@ -970,7 +1036,9 @@ class DEEPMODEL():
                 loss_result.to_csv('{}/loss_AutoEncoder_Outdoor_{}_Indoor_{}.csv'.format(save, out_unit, ind_unit))
                 print("AutoEncoder Completed! (Train Process)")
 
-        elif self.method == "Attention":
+
+        elif self.method in ["Attention", "attention"]:
+            self.method = "Attention"
             print("Attention Start! (Train Process)")
             with tf.compat.v1.Session() as sess:
                 sess.run(init)
@@ -1007,7 +1075,7 @@ class DEEPMODEL():
 
     def TEST_PROCESS(self, model, save, out_unit, ind_unit):
         init = tf.compat.v1.global_variables_initializer()
-        if self.method == "Seq2seq":
+        if self.method in ["Seq2seq"]:
             print("Seq2seq start! (Test Process)")
             with tf.compat.v1.Session() as sess:
                 sess.run(init)
@@ -1072,7 +1140,7 @@ class DEEPMODEL():
             df_acc.to_csv("{}/Acc_y3_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, ind_unit))
             print("Seq2seq Completed! (Test Process)")
 
-        elif self.method == "AutoEncoder":
+        elif self.method in ["AutoEncoder"]:
             print("AutoEncoder Start! (Test Process)")
             # 오토인코더 test
             with tf.compat.v1.Session() as sess:
@@ -1130,7 +1198,7 @@ class DEEPMODEL():
             # 이제 다시 시퀀스-투-시퀀스를 돌려주면된다.
             print("AutoEncoder Completed! (Test Process)")
 
-        elif self.method == "Attention":
+        elif self.method in ["Attention"]:
             with tf.compat.v1.Session() as sess:
                 sess.run(init)
                 saver = model['saver']().restore(sess, "{}/Model_Outdoor_{}_Indoor_{}".format(save, out_unit, ind_unit))
@@ -1189,7 +1257,6 @@ class DEEPMODEL():
             df_acc.to_csv("{}/Acc_y3_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, ind_unit))
             print("Seq2seq With Attention Completed! (Test Process)")
 
-
 #Seq2Seq Hyperparameter
 INPUT_SEQ_LEN = 10
 OUTPUT_SEQ_LEN = 10
@@ -1226,7 +1293,7 @@ TspValue = 'set_temp'
 # TzValue =  'room_temp'
 ToaValue = 'outdoor_temp'
 
-METHOD = "Seq2seq" #"Seq2seq" ,"Attention", "AutoEncoder"
+METHOD = "AutoEncoder" #"Seq2seq" ,"Attention", "AutoEncoder"
 # 특징중요도 메소드
 IMP_METHOD = "Randomforest" #"Randomforest","Adaboosting","Gradientboosting"
 
