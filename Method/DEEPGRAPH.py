@@ -168,7 +168,7 @@ class DEEPMODEL():
                         cells.append(cell)
                 cell = tf.contrib.rnn.MultiRNNCell(cells)
 
-            def _rnn_decoder(decoder_inputs, initial_state,cell, loop_function=None, scope=None):
+            def _rnn_decoder(decoder_inputs, initial_state, cell, loop_function=None, scope=None):
                 """
                 이 함수는 Seq2seq 모델의 RNN 모델을 나타낸다.
                 (RNN decoder for the sequence-to-sequence model.)
@@ -277,13 +277,13 @@ class DEEPMODEL():
         }
         print("biases: {}".format(biases))
 
+
         with tf.compat.v1.variable_scope('Seq2seq'):
             # Encoder: inputs
             enc_inp = [
                 tf.compat.v1.placeholder(tf.float32, shape=(None, self.INPUT_DIM), name="inp_{}".format(t))
                 for t in range(self.INPUT_SEQ_LEN)
             ]
-
             # Decoder: target outputs
             target_seq = [
                 tf.compat.v1.placeholder(tf.float32, shape=(None, self.OUTPUT_DIM), name="y".format(t))
@@ -304,20 +304,17 @@ class DEEPMODEL():
                             cell = tf.contrib.rnn.LSTMCell(num_units=self.HIDDEN_DIM)  # LSTM cell 하나 넣었고,
                             cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=1.0 - self.DROPOUT)
                             cells.append(cell)  # 리스트에 추가
-                            print(
-                                "scope_message: {} - hidden_dim : {} - cell:{}".format(scope_message, self.HIDDEN_DIM, cell))
-                    print("[cells] len : {} - {} - {}".format(len(cells), type(cells), cells))
+                            print("[cell]scope_message: {} - hidden_dim(OutputSize) : {} - CellStateSize:{}".format(scope_message, cell.output_size, cell.state_size))
                     enc_cell = tf.contrib.rnn.MultiRNNCell(cells)
-                    print("[enc_cell] {} - {}".format(type(enc_cell), enc_cell))
+                    print("[enc_cell] OutputSize : {}".format(enc_cell.state_size))
+
                     # Dynamic RNN으로 바꾸기
                 enc_outputs, enc_state = rnn.static_rnn(enc_cell, enc_inp, dtype=tf.float32)
-                print("==========================================\n")
 
                 print("==========[Encoder] Static RNN ==========")
                 print("[enc_inp] {} - {} - {}".format(len(enc_inp), type(enc_inp), enc_inp))
-                print("[enc_outputs] {} - {} - {}".format(len(enc_inp), type(enc_outputs), enc_outputs))
-                print("[enc_state] {} - {} - {}".format(array_ops.shape(enc_state)[0], type(enc_state), enc_state))
-                print("==========================================\n")
+                print("[enc_outputs] {} - {} - {}".format(len(enc_outputs), type(enc_outputs), enc_outputs))
+                print("[enc_state] {} - {}".format(len(enc_state), enc_state))
 
             def _loop_function(prev, _):
                 '''Naive implementation of loop function for _rnn_decoder. '''
@@ -337,13 +334,11 @@ class DEEPMODEL():
                             with tf.compat.v1.variable_scope(scope_message):
                                 cell = tf.contrib.rnn.LSTMCell(num_units=self.HIDDEN_DIM)
                                 cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=1.0 - self.DROPOUT)
-                                print("scope_message: {} - hidden_dim : {} - cell:{}".format(scope_message, self.HIDDEN_DIM,
-                                                                                             cell))
+                                print("[cell]scope_message: {} - hidden_dim(OutputSize) : {} - CellStateSize:{}".format(scope_message, cell.output_size, cell.state_size))
                                 cells.append(cell)
                             # print("[cells] len : {} - {} - {}".format(len(cells), type(cells), cells))
                         dec_cell = tf.contrib.rnn.MultiRNNCell(cells)
-                        print("[dec_cell] {} - {}".format(type(dec_cell), enc_cell))
-                    print("==========================================\n")
+                        print("[dec_cell] OutputSize : {}".format(dec_cell.state_size))
                     prev = None
                     dec_outputs = []
                     for i, de_inp in enumerate(dec_inp):
@@ -367,13 +362,11 @@ class DEEPMODEL():
                             with tf.compat.v1.variable_scope(scope_message):
                                 cell = tf.contrib.rnn.LSTMCell(num_units=self.HIDDEN_DIM)
                                 cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=1.0 - self.DROPOUT)
-                                print("scope_message: {} - hidden_dim : {} - cell:{}".format(scope_message, self.HIDDEN_DIM,
-                                                                                             cell))
+                                print("[cell]scope_message: {} - hidden_dim(OutputSize) : {} - CellStateSize:{}".format(scope_message, cell.output_size, cell.state_size))
                                 cells.append(cell)
                             # print("[cells] len : {} - {} - {}".format(len(cells), type(cells), cells))
                         dec_cell = tf.contrib.rnn.MultiRNNCell(cells)
-                        print("[dec_cell] {} - {}".format(type(dec_cell), dec_cell))
-                    print("==========================================\n")
+                        print("[dec_cell] OutputSize : {}".format(dec_cell.state_size))
 
                     prev = None
                     dec_outputs = []
@@ -392,58 +385,75 @@ class DEEPMODEL():
             print("==========[Decoder] Static RNN ==========")
             print("[dec_inp] {} - {} - {}".format(len(dec_inp), type(dec_inp), dec_inp))
             print("[dec_outputs] {} - {} - {}".format(len(dec_outputs), type(dec_outputs), dec_outputs))
-            print("[dec_state] {} - {} - {}".format(len(dec_state), type(dec_state), dec_state))
-            print("==========================================\n")
+            print("[dec_state] {} - {}".format(len(dec_state), dec_state))
 
-            """Encoder - cell state/hidden state"""
-            enc_cell_states = tf.concat([tf.expand_dims(state, 1) for state in enc_state], axis=1)[0]
-            print("[enc_cell_states] {} - {} - {}".format(enc_cell_states.get_shape(), type(enc_cell_states),
-                                                          enc_cell_states))  # (4, ?, 128)
-            enc_hidden_states = tf.concat([tf.expand_dims(state, 1) for state in enc_state], axis=1)[1]
-            print("[enc_hidden_states] {} - {} - {}".format(enc_hidden_states.get_shape(), type(enc_hidden_states),
-                                                            enc_hidden_states))  # (4, ?, 128)
+            print("==========[Encoder-Decoder] CellState/HiddenState ==========")
+            """Encoder - cell state/hidden state : 마지막 층만 뽑음"""
+            # enc_cell_states = tf.concat([tf.expand_dims(state, 1) for state in enc_state], axis=1)[0]
+            # enc_hidden_states = tf.concat([tf.expand_dims(state, 1) for state in enc_state], axis=1)[1]
+            # enc_cell_states = enc_state[-1][0]
+            enc_hidden_states = enc_state[-1][1]
+            # print("[enc_cell_states] {} - {} - {}".format(enc_cell_states.get_shape(), type(enc_cell_states), enc_cell_states))
+            print("[enc_hidden_states] {} - {} - {}".format(enc_hidden_states.get_shape(), type(enc_hidden_states), enc_hidden_states))  # (?, 128)
 
             """Decoder - cell state/hidden state"""
-            dec_cell_states = tf.concat([tf.expand_dims(state, 1) for state in dec_state], axis=1)[0]
-            print("[dec_cell_states] {} - {} - {}".format(dec_cell_states.get_shape(), type(dec_cell_states),
-                                                          dec_cell_states))  # (4, ?, 128)
-            dec_hidden_states = tf.concat([tf.expand_dims(state, 1) for state in dec_state], axis=1)[1]
-            print("[dec_hidden_states] {} - {} - {}".format(dec_hidden_states.get_shape(), type(dec_hidden_states),
-                                                            dec_hidden_states))  # (4, ?, 128)
+            # dec_cell_states = tf.concat([tf.expand_dims(state, 1) for state in dec_state], axis=1)[0]
+            # dec_hidden_states = tf.concat([tf.expand_dims(state, 1) for state in dec_state], axis=1)[1]
+            # dec_cell_states = dec_state[-1][0]
+            dec_hidden_states = dec_state[-1][1]
+            # print("[dec_cell_states] {} - {} - {}".format(dec_cell_states.get_shape(), type(dec_cell_states), dec_cell_states))
+            print("[dec_hidden_states] {} - {} - {}".format(dec_hidden_states.get_shape(), type(dec_hidden_states), dec_hidden_states))
 
             """Convert to tensor"""
             print("==========[Enc-Dec] Convert to tensor ==========")
             enc_state = tf.convert_to_tensor(enc_state)
-            print("[enc_state] {} - {} - {}".format(enc_state.get_shape(), type(enc_state), enc_state))
-            dec_state = tf.convert_to_tensor(dec_state)
-            print("[dec_state] {} - {} - {}".format(dec_state.get_shape(), type(dec_state), dec_state))
-
             enc_outputs = tf.convert_to_tensor(enc_outputs)
+            print("[enc_state] {} - {} - {}".format(enc_state.get_shape(), type(enc_state), enc_state))
             print("[enc_outputs] {} - {} - {}".format(enc_outputs.get_shape(), type(enc_outputs), enc_outputs))
+            dec_state = tf.convert_to_tensor(dec_state)
             dec_outputs = tf.convert_to_tensor(dec_outputs)
+            print("[dec_state] {} - {} - {}".format(dec_state.get_shape(), type(dec_state), dec_state))
             print("[dec_outputs] {} - {} - {}".format(dec_outputs.get_shape(), type(dec_outputs), dec_outputs))
 
             """Attention layer"""
+            print("==========[Attention Layer] Mechanism-Score-align-ContextVector ==========")
             with variable_scope.variable_scope("attn_mechanism"):  # attention mechanism
                 with tf.variable_scope("attn_score"):  # attention score
-                    trs_dec_outputs = tf.transpose(dec_outputs, perm=[0, 2, 1])
-                    print("[trs_dec_outputs] {} - {} - {}".format(trs_dec_outputs.get_shape(), type(trs_dec_outputs), trs_dec_outputs))
-                    score = tf.matmul(enc_outputs, trs_dec_outputs)  # dot product : 마지막 state,
-                    # score = tf.multiply(score, tf.math.sqrt(float(self.INPUT_DIM)))
-                    # score = tf.nn.relu(score, name="score")
+                    # trs_dec_outputs = tf.transpose(dec_outputs, perm=[0, 2, 1])
+                    trs_dec_hidden_states = tf.transpose(dec_hidden_states) #perm=[0, 2, 1])
+                    print("[trs_dec_outputs] {} - {} - {}".format(trs_dec_hidden_states.get_shape(), type(trs_dec_hidden_states), trs_dec_hidden_states))
+                    score = tf.matmul(enc_hidden_states, trs_dec_hidden_states)  # dot product : 마지막 state,
                     print("[score] {} - {} - {}".format(score.get_shape(), type(score), score))
                 with tf.variable_scope("attn_align"):  # softmax - attention distribution - attention weight
                     alphas = tf.nn.softmax(score, name="alphas")  # 총합이 1이 되도록 alignment 실행
                     print("[alphas] {} - {} - {}".format(type(alphas), alphas.shape, alphas))  # 시간의 가중치
+                    # trs_alphas = tf.transpose(alphas, perm=[0, 2, 1])
                 with tf.variable_scope("context_vector"):  # attention outputs
-                    context_vec = tf.reduce_sum(tf.matmul(alphas, enc_outputs), axis=1, name="context")  # Transpose, 곱하는 순서
-                    print("[context_vec] {} - {} - {}".format(type(context_vec), context_vec.shape, context_vec))
-                    context_vec = tf.expand_dims(context_vec, axis=1, name="context_vec") # 연산을 위해 차원을 정렬해준다
+                    context_vec = tf.reduce_sum(tf.matmul(alphas, enc_hidden_states), axis=1, name="context")
+                    context_vec = tf.expand_dims(context_vec, axis=1, name="context_vec")
                     print("[context_vec] {} - {} - {}".format(type(context_vec), context_vec.shape, context_vec))
                     print("[dec_outputs] {} - {} - {}".format(type(dec_outputs), dec_outputs.shape, dec_outputs))
+
+                    weights_c = {
+                        'out': tf.compat.v1.get_variable('Weights_c',
+                                                         shape=[self.HIDDEN_DIM, 1],
+                                                         # shape=[, self.HIDDEN_DIM],
+                                                         dtype=tf.float32,
+                                                         initializer=tf.truncated_normal_initializer()),
+                    }
+                    print("weights_c: {}".format(weights_c))
+                    biases_c = {
+                        'out': tf.compat.v1.get_variable('Biases_c',
+                                                         shape=[1],
+                                                         dtype=tf.float32,
+                                                         initializer=tf.constant_initializer(0.)),
+                    }
+                    print("biases_c: {}".format(biases_c))
+
                 with tf.variable_scope("attn_outputs"):
+                    # (?, 1)
+                    # (10, ?, 128)
                     attn_outputs = tf.multiply(context_vec, dec_outputs)
-                    # attn_outputs = tf.nn.tanh(attn_outputs, name="attn_outputs")
                     print("[attn_outputs] {} - {} - {}".format(type(attn_outputs), attn_outputs.get_shape(),
                                                                attn_outputs))
                     attn_dec_outputs_list = []
@@ -453,14 +463,10 @@ class DEEPMODEL():
                     print("[attn_dec_outputs_list] {} - {} - {}".format(len(attn_dec_outputs_list),
                                                                         type(attn_dec_outputs_list),
                                                                         attn_dec_outputs_list))
-            print("[weights['out']] {} - {}".format(type(weights['out']), weights['out']))
-            print("[biases['out']] {} - {}".format(type(biases['out']), biases['out']))
-            for k in attn_dec_outputs_list:  # 확인용
-                print(k)
-            # reshaped_outputs = [tf.matmul(i, weights['out']) + biases['out'] for i in attn_dec_outputs_list]  # attention
-            reshaped_outputs = [tf.nn.tanh(tf.matmul(i, weights['out']) + biases['out']) for i in attn_dec_outputs_list]
-            print("[reshaped_outputs] {} - {} - {}".format(len(reshaped_outputs), type(reshaped_outputs),
-                                                           reshaped_outputs))
+
+            reshaped_outputs = [tf.nn.tanh(tf.matmul(i, weights_c['out']) + biases_c['out']) for i in attn_dec_outputs_list]  # attention
+            print("[reshaped_outputs] {} - {} - {}".format(len(reshaped_outputs), type(reshaped_outputs), reshaped_outputs))
+
 
             """Loss step"""
             with tf.compat.v1.variable_scope('Loss'):
@@ -798,10 +804,10 @@ class DEEPMODEL():
             # month : x=12 / week : x=52
             # hour : x=24 / minute : x=60
             df.index = pd.to_datetime(df.index)
-            df.loc[:, 'week_sin'] = np.round(np.sin((df.index.weekday() - 1) * (2. * np.pi / 12)), decimals=2)
-            df.loc[:, 'week_cos'] = np.round(np.cos((df.index.weekday() - 1) * (2. * np.pi / 12)), decimals=2)
-            df.loc[:, 'hour_sin'] = np.round(np.sin(df.index.hour * (2. * np.pi / 24)), decimals=2)
-            df.loc[:, 'hour_cos'] = np.round(np.cos(df.index.hour * (2. * np.pi / 24)), decimals=2)
+            df.loc[:, 'wk_sin'] = np.round(np.sin((df.index.weekday - 1) * (2. * np.pi / 12)), decimals=2)
+            df.loc[:, 'wk_cos'] = np.round(np.cos((df.index.weekday - 1) * (2. * np.pi / 12)), decimals=2)
+            df.loc[:, 'hr_sin'] = np.round(np.sin(df.index.hour * (2. * np.pi / 24)), decimals=2)
+            df.loc[:, 'hr_cos'] = np.round(np.cos(df.index.hour * (2. * np.pi / 24)), decimals=2)
             df.loc[:, self.target] = self.data.loc[:, self.target].copy()
             df.loc[:, 'inputy'] = self.data.loc[:, self.target].copy()
 
@@ -1293,11 +1299,11 @@ TspValue = 'set_temp'
 # TzValue =  'room_temp'
 ToaValue = 'outdoor_temp'
 
-METHOD = "AutoEncoder" #"Seq2seq" ,"Attention", "AutoEncoder"
+METHOD = "Attention" #"Seq2seq" ,"Attention", "AutoEncoder"
 # 특징중요도 메소드
 IMP_METHOD = "Randomforest" #"Randomforest","Adaboosting","Gradientboosting"
 
-NumOfFeatures = 5
+NumOfFeatures = 4
 
 DML = DEEPMODEL(time=TIME, LEARNING_RATE=LEARNING_RATE, LAMBDA_L2_REG=LAMBDA_L2_REG, BATCH_SIZE=BATCH_SIZE,
                 INPUT_SEQ_LEN=INPUT_SEQ_LEN, OUTPUT_SEQ_LEN=OUTPUT_SEQ_LEN, NUM_STACK_LAYERS=NUM_STACK_LAYERS,

@@ -4,9 +4,10 @@ import datetime
 import os
 
 class ACQUISITION():
-    def __init__(self, start, end):
+    def __init__(self, start, end, AnalysisObject):
         """원하는 데이터"""
         self.DATA_PATH = "D:/OPTIMAL/Data"
+        self.AnalysisObject = AnalysisObject
 
         self.TIME = "updated_time"
         self.indoor_data = ["indoor_power",
@@ -20,9 +21,10 @@ class ACQUISITION():
 
         self.outdoor_data = ["total_indoor_capa",
                              "comp1", "comp2",
-                             "cond_out_temp1",
-                             "suction_temp1",
+                             "comp_current_frequency1", "comp_current_frequency2",
+                             "suction_temp1", "cond_out_temp1",
                              "discharge_temp1", "discharge_temp2", "discharge_temp3",
+                             "double_tube_temp",
                              "outdoor_temperature",
                              "high_pressure", "low_pressure",
                              "eev1", "eev2", "eev3",
@@ -89,7 +91,7 @@ class ACQUISITION():
 
         """디렉토리 생성"""
         self.folder_name = "{}-{}-{}".format(self.start_year, self.start_month, self.start_date)
-        self.create_folder('{}/{}'.format(self.DATA_PATH, self.folder_name)) # 없으면 생성
+        self.create_folder('{}/{}'.format(self.DATA_PATH, self.AnalysisObject, self.folder_name)) # 없으면 생성
 
         """MYSQL 접속"""
         self.db_conn = pymysql.connect(host="192.168.0.33",
@@ -126,7 +128,7 @@ class ACQUISITION():
             for j in df1.columns:
                 df1.rename(columns={'{}'.format(j) : 'Bldg_{}/Outd_{}/Ind_{}/{}'.format(self.bldg_name, out_unit, i, j)}, inplace=True)
             df1 = df1.set_index(df_org[self.TIME])
-            save = "{}/{}/{}".format(self.DATA_PATH,self.folder_name, out_unit)
+            save = "{}/{}/{}/{}".format(self.DATA_PATH, self.AnalysisObject, self.folder_name, out_unit)
             self.create_folder(save)
             df1.to_csv(save + '\Outdoor_{}_Indoor_{}.csv'.format(out_unit, i))
 
@@ -153,7 +155,7 @@ class ACQUISITION():
         for j in df.columns:
             df.rename(columns={'{}'.format(j): 'Bldg_{}/Outd_{}/{}'.format(self.bldg_name, out_unit, j)}, inplace=True)
         df = df.set_index(df_org[self.TIME])
-        df.to_csv("{}/{}/Outdoor_{}.csv".format(self.DATA_PATH,self.folder_name, out_unit))
+        df.to_csv("{}/{}/{}/Outdoor_{}.csv".format(self.DATA_PATH, self.AnalysisObject, self.folder_name, out_unit))
 
     def create_folder(self, directory):
         try:
@@ -202,32 +204,33 @@ class ACQUISITION():
 
 
 """Indoor data"""
-start ='2021-10-01'
-end = '2021-12-31'
+start ='2022-02-14'
+end = '2022-02-14'
+AnalysisObject = 'VirtualSensor' # Optimal/VirtualSensor
 
 """진리관"""
-# Indoor
-cooo = ACQUISITION(start=start, end=end)
-for i in [909, 910, 921, 920, 919, 917, 918, 911]:
-    cooo.get_indoor_with_Fullsentences(out_unit=i)
-cooo.CLOSE_DATABASE()
-
-# Outdoor
-cooo = ACQUISITION(start=start, end=end)
-for i in [909, 910, 921, 920, 919, 917, 918, 911]:
-    cooo.get_outdoor_with_Fullsentences(out_unit=i)
-cooo.CLOSE_DATABASE()
+# # Indoor
+# cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
+# for i in [909, 910, 921, 920, 919, 917, 918, 911]:
+#     cooo.get_indoor_with_Fullsentences(out_unit=i)
+# cooo.CLOSE_DATABASE()
+#
+# # Outdoor
+# cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
+# for i in [909, 910, 921, 920, 919, 917, 918, 911]:
+#     cooo.get_outdoor_with_Fullsentences(out_unit=i)
+# cooo.CLOSE_DATABASE()
 
 
 """디지털 도서관"""
 # Indoor
-# cooo = ACQUISITION(start=start, end=end)
-# for i in [3065, 3066, 3067, 3069]:
-#     cooo.get_indoor_with_Fullsentences(out_unit=i)
-# cooo.CLOSE_DATABASE()
+cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
+for i in [3065, 3066, 3067, 3069]:
+    cooo.get_indoor_with_Fullsentences(out_unit=i)
+cooo.CLOSE_DATABASE()
 
 # Outdoor
-# cooo = ACQUISITION(start=start, end=end)
-# for i in [3065, 3066, 3067, 3069]:
-#     cooo.get_outdoor_with_Fullsentences(out_unit=i)
-# cooo.CLOSE_DATABASE()
+cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
+for i in [3065, 3066, 3067, 3069]:
+    cooo.get_outdoor_with_Fullsentences(out_unit=i)
+cooo.CLOSE_DATABASE()
