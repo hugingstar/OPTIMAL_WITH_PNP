@@ -35,7 +35,7 @@
   * Update(22.04.24) : 열관류율 가상센서, 열교환기 출구 온도 가상센서
   * Update(22.04.25) : VSENS_CAPA_EVAP의 Try-Except에서 Except 값 부분 수정
 * REGRESSION.py : 회귀식을 만들기 위한 가중치를 출력하는 모델
-  * Update(22.04.26) : 간단한 회귀식을 만들기 위한 모델(비선형 가능) 
+  * Update(22.04.26) : 간단한 회귀식을 만들기 위한 모델(Hypothesis 설정시 비선형 가능) 
   
 ### 5. Results
 * Results/{File}
