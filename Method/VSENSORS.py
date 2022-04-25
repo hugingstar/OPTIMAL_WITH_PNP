@@ -266,16 +266,15 @@ class COMPRESSORMAPMODEL():
             except:
                 h_condOut = h_condOut_prev
             h_condOut_prev = h_condOut  # Two-Phase인 경우 대비
-
             h_suc = CP.CoolProp.PropsSI('H', 'P', self.data[self.SuctionPressure][o] * 98.0665 * 1000, 'T',
                                         self.data[self.SuctionTemp][o] + 273.15, 'R410A')  # Suction Line Enthalpy
+
             self.data.at[self.data.index[o], "{}".format(self.hCondOut)] = h_condOut
             self.data.at[self.data.index[o], "{}".format(self.hsuc)] = h_suc
             self.data.at[self.data.index[o], "{}".format(self.del_h_evap)] = abs(h_suc - h_condOut) / 1000
             self.data.at[self.data.index[o], "{}".format(self.Qevap)] = self.data[self.MdotPred][o] * (abs(h_suc - h_condOut) / 1000)
 
     def VSENS_CAPA_COND(self): # 컨덴서 용량 가상센서
-        h_condOut_prev = 0
         h_dis_prev = 0
         for o in range(self.data.shape[0]):
             #Discharge Temperature 컬럼이 여러개 있기 때문에 큰 값을 사용한 것
@@ -284,14 +283,12 @@ class COMPRESSORMAPMODEL():
             T_dis = max(T_dis1, T_dis2)
             try:
                 h_dis = CP.CoolProp.PropsSI('H', 'P', self.data[self.DischargePressure][o] * 98.0665 * 1000, 'T', T_dis + 273.15, 'R410A') #Discharge Line
-                h_condOut = CP.CoolProp.PropsSI('H', 'P', self.data[self.DischargePressure][o] * 98.0665 * 1000, 'T', self.data[self.LiqTemp][o] + 273.15, 'R410A') #Condenser out
             except:
                 h_dis = h_dis_prev
-                h_condOut = h_condOut_prev
             h_dis_prev = h_dis
-            h_condOut_prev = h_condOut  # Two-Phase인 경우 대비
+
+            h_condOut = self.data[self.hCondOut][o]
             self.data.at[self.data.index[o], "{}".format(self.hdis)] = h_dis
-            self.data.at[self.data.index[o], "{}".format(self.hCondOut)] = h_condOut
             self.data.at[self.data.index[o], "{}".format(self.del_h_cond)] = abs(h_dis - h_condOut) / 1000
             self.data.at[self.data.index[o], "{}".format(self.Qcond)] = self.data[self.MdotPred][o] * (abs(h_dis - h_condOut) / 1000)
 

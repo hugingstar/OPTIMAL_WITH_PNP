@@ -33,7 +33,9 @@
 * VSENSORS.py : 실외기 데이터를 사용한 가상센서
   * Update(22.04.23) : 냉매 질량 유량 가상센서, 전력 가상센서, 증발기 용량 가상센서, 응축기 용량 가상센서 추가
   * Update(22.04.24) : 열관류율 가상센서, 열교환기 출구 온도 가상센서
-  * Update(22.04.25) : VSENS_CAPA_EVAP의 Try-Except에서 Except 값 부분 수정 
+  * Update(22.04.25) : VSENS_CAPA_EVAP의 Try-Except에서 Except 값 부분 수정
+* REGRESSION.py : 회귀식을 만들기 위한 가중치를 출력하는 모델
+  * Update(22.04.26) : 간단한 회귀식을 만들기 위한 모델(비선형 가능) 
   
 ### 5. Results
 * Results/{File}
