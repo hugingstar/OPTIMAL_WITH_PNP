@@ -1,11 +1,8 @@
-import numpy as np
-import datetime
-import torch
 import os
-import torch.optim as optim
 import pandas as pd
+import math
 import CoolProp as CP
-from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, MaxAbsScaler
+import numpy as np
 
 class COMPRESSORMAPMODEL():
     def __init__(self, COMP_MODEL_NAME, TIME, start, end):
@@ -89,7 +86,7 @@ class COMPRESSORMAPMODEL():
         self.create_folder('{}/VirtualSensor'.format(self.SAVE_PATH))  # Deepmodel 폴더를 생성
 
     def VSENSOR_PROCESSING(self, out_unit, freqValue, PdisValue, PsucValue, TsucValue,
-                           TdisValue, TcondOutValue, TliqValue, target):
+                           TdisValue, TcondOutValue, TliqValue, TinAirValue, ToutAirValue, target):
         # 예측 대상
         self.target = target
 
@@ -105,200 +102,183 @@ class COMPRESSORMAPMODEL():
         self._outdpath = "{}/{}/Outdoor_{}.csv".format(self.DATA_PATH, self.folder_name, out_unit)
         self._outdata = pd.read_csv(self._outdpath, index_col=self.TIME)
 
-        self.data = self._outdata # 복사해서 사용
-        self.data.index.names = [self.TIME]
+        for indv in list(self.bldginfo[out_unit]):
+            #실내기 데이터
+            self._indpath = "{}/{}/{}/Outdoor_{}_Indoor_{}.csv".format(self.DATA_PATH, self.folder_name, out_unit, out_unit, indv)
+            self._indata = pd.read_csv(self._indpath, index_col=self.TIME)
 
-        # 컬럼이름 탐색
-        self.freq = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=freqValue, case=False)])[0]
-        self.DischargePressure = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=PdisValue, case=False)])[0]
-        self.DischargeTemp = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=TdisValue, case=False)])[0]
-        self.SuctionPressure = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=PsucValue, case=False)])[0]
-        self.SuctionTemp = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=TsucValue, case=False)])[0]
-        self.CondOutTemp = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=TcondOutValue, case=False)])[0]
-        self.LiqTemp = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=TliqValue, case=False)])[0]
-        self.CondMapTemp = self.DischargePressure.replace(PdisValue, 'cond_map_temp') # 맵에서 찾은 데이터 컬럼이름 조정
-        self.EvaMapTemp = self.SuctionPressure.replace(PsucValue, 'suc_map_temp')
-        self.MapDensity = self.DischargePressure.replace(PdisValue, 'density')
-        self.MdotRated = self.DischargePressure.replace(PdisValue, 'm_dot_rated')
-        self.WdotRated = self.DischargePressure.replace(PdisValue, 'w_dot_rated')
-        self.MdotPred = self.DischargePressure.replace(PdisValue, 'm_dot_pred')
-        self.WdotPred = self.DischargePressure.replace(PdisValue, 'w_dot_pred')
-        self.Qevap = self.DischargePressure.replace(PdisValue, 'capa_eva')
-        self.Qcond = self.DischargePressure.replace(PdisValue, 'capa_cond')
-        self.hevap = self.DischargePressure.replace(PdisValue, 'enthalpy_evap')
-        self.hsuc = self.DischargePressure.replace(PdisValue, 'enthalpy_suc')
-        self.hdis = self.DischargePressure.replace(PdisValue, 'enthalpy_dis')
-        self.del_h_evap = self.DischargePressure.replace(PdisValue, 'enthalpy_difference_evap')
-        self.del_h_cond = self.DischargePressure.replace(PdisValue, 'enthalpy_difference_cond')
+            #실내기 및 실외기의 데이터 통합
+            self.data = pd.concat([self._outdata, self._indata], axis=1)
+            self.data.index.names = [self.TIME] # 인덱스 컬럼명이 없는 경우를 대비하여 보완
+            #문자열로 된 원본 데이터의 '모드'를 숫자로 변환
+            self.data = self.data.replace({"High": 3, "Mid" : 2, "Low" : 1, "Auto" : 4})
 
-        #Frequency
-        if self.freq[-1] == '1': #frequency1
-            self.freq_sub = self.freq.replace('1', '2')
-        elif self.freq[-1] == '2': #frequency2
-            self.freq_sub = self.freq.replace('2', '1')
+            # 컬럼이름 탐색
+            self.freq = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=freqValue, case=False)])[0]
+            self.DischargePressure = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=PdisValue, case=False)])[0]
+            self.DischargeTemp = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=TdisValue, case=False)])[0]
+            self.SuctionPressure = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=PsucValue, case=False)])[0]
+            self.SuctionTemp = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=TsucValue, case=False)])[0]
+            self.CondOutTemp = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=TcondOutValue, case=False)])[0]
+            self.LiqTemp = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=TliqValue, case=False)])[0]
+            self.AirSideInletTemp = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=TinAirValue, case=False)])[0]
+            self.AirSideOutletTemp = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=ToutAirValue, case=False)])[0]
 
-        #DischargeTemperature
-        if self.DischargeTemp[-1] == '1':
-            self.DischargeTemp_sub = self.DischargeTemp.replace('1', '2')
-        elif self.DischargeTemp[-1] == '2':
-            self.DischargeTemp_sub = self.DischargeTemp.replace('2', '1')
+            # 컬럼명 생성
+            self.CondMapTemp = self.DischargePressure.replace(PdisValue, 'cond_map_temp') # 맵에서 찾은 데이터 컬럼이름 조정
+            self.EvaMapTemp = self.SuctionPressure.replace(PsucValue, 'suc_map_temp')
+            self.MapDensity = self.DischargePressure.replace(PdisValue, 'density')
+            self.MdotRated = self.DischargePressure.replace(PdisValue, 'm_dot_rated')
+            self.WdotRated = self.DischargePressure.replace(PdisValue, 'w_dot_rated')
+            self.MdotPred = self.DischargePressure.replace(PdisValue, 'm_dot_pred')
+            self.WdotPred = self.DischargePressure.replace(PdisValue, 'w_dot_pred')
 
+            self.Qevap = self.DischargePressure.replace(PdisValue, 'capa_eva')
+            self.Qcond = self.DischargePressure.replace(PdisValue, 'capa_cond')
 
-        #Coefficients
-        self.coef_mdotrated = list(self.coef['Mdot_rated'])
-        self.coef_wdotrated = list(self.coef['Wdot_rated'])
-        self.coef_mdotpred = list(self.coef['Mdot_pred'])
-        self.coef_wdotpred = list(self.coef['Mdot_pred'])
-        print("MdotRated Coefficients : {} - {}".format(len(self.coef_mdotrated), self.coef_mdotrated))
-        print("WdotRated Coefficients : {} - {}".format(len(self.coef_wdotrated), self.coef_wdotrated))
-        print("MdotPred Coefficients : {} - {}".format(len(self.coef_mdotpred), self.coef_mdotpred))
-        print("WdotPred Coefficients : {} - {}".format(len(self.coef_wdotpred), self.coef_wdotpred))
+            self.hCondOut = self.DischargePressure.replace(PdisValue, 'enthalpy_cond_out')
+            self.hsuc = self.DischargePressure.replace(PdisValue, 'enthalpy_suc')
+            self.hdis = self.DischargePressure.replace(PdisValue, 'enthalpy_dis')
 
-        #Map data
-        for o in range(self.data.shape[0] - 1):
-            # CondMapTemp
-            self.data.at[self.data.index[o], "{}".format(self.CondMapTemp)] = CP.CoolProp.PropsSI('T', 'P', self.data[self.DischargePressure][o] * 98.0665 * 1000, 'Q', 0.5, 'R410A') - 273.15
-            # EvaMapTemp
-            self.data.at[self.data.index[o], "{}".format(self.EvaMapTemp)] = CP.CoolProp.PropsSI('T', 'P', self.data[self.SuctionPressure][o] * 98.0665 * 1000, 'Q', 0.5, 'R410A') - 273.15
-            # MapDensity
-            self.data.at[self.data.index[o], "{}".format(self.MapDensity)] = CP.CoolProp.PropsSI('D','P',self.data[self.SuctionPressure][o] * 98.0665 * 1000, 'T',self.data[self.SuctionTemp][o] + 273.15, 'R410A')
-        self.data.at[self.data.index[-1], "{}".format(self.CondMapTemp)] = CP.CoolProp.PropsSI('T', 'P', self.data[self.DischargePressure][o + 1] * 98.0665 * 1000, 'Q', 0.5, 'R410A') - 273.15
-        self.data.at[self.data.index[-1], "{}".format(self.EvaMapTemp)] = CP.CoolProp.PropsSI('T', 'P', self.data[self.SuctionPressure][o + 1] * 98.0665 * 1000, 'Q', 0.5, 'R410A') - 273.15
-        self.data.at[self.data.index[-1], "{}".format(self.MapDensity)] = CP.CoolProp.PropsSI('D', 'P', self.data[self.SuctionPressure][o + 1] * 98.0665 * 1000, 'T', self.data[self.SuctionTemp][o + 1] + 273.15, 'R410A')
+            self.del_h_evap = self.DischargePressure.replace(PdisValue, 'enthalpy_difference_evap')
+            self.del_h_cond = self.DischargePressure.replace(PdisValue, 'enthalpy_difference_cond')
 
-        # 정격 냉매 질량 유량
-        self.VSENS_MdotRated()
-        # 냉매 질량 유량 가상센서
-        self.VSENS_MdotPred()
-        # 정격 전력
-        self.VSENS_WdotRated()
-        # 전력 가상센서
-        self.VSENS_WdotPred()
-        # 증발기 용량 가상센서
-        self.VSENS_CAPA_EVAP()
-        # 컨덴서 용량 가상센서
-        self.VSENS_CAPA_COND()
+            self.ua = self.DischargePressure.replace(PdisValue, 'ua')
+            self.cp = self.DischargePressure.replace(PdisValue, 'cp')
 
+            #Frequency
+            if self.freq[-1] == '1': #frequency1
+                self.freq_sub = self.freq.replace('1', '2')
+            elif self.freq[-1] == '2': #frequency2
+                self.freq_sub = self.freq.replace('2', '1')
 
-        self.data = self.data.sort_values(self.TIME)
-        self.data = self.data.fillna(method='ffill')  # 결측값 처리
+            #DischargeTemperature
+            if self.DischargeTemp[-1] == '1':
+                self.DischargeTemp_sub = self.DischargeTemp.replace('1', '2')
+            elif self.DischargeTemp[-1] == '2':
+                self.DischargeTemp_sub = self.DischargeTemp.replace('2', '1')
 
-        # 저장할 총 경로
-        save = "{}/VirtualSensor/{}/{}/{}".format(self.SAVE_PATH, self.target, self.folder_name, out_unit)
-        self.create_folder(save)
-        self.data.to_csv("{}/Before_Outdoor_{}.csv".format(save, out_unit))  # 조건 적용 전
+            #Coefficients
+            self.coef_mdotrated = list(self.coef['Mdot_rated'])
+            self.coef_wdotrated = list(self.coef['Wdot_rated'])
+            self.coef_mdotpred = list(self.coef['Mdot_pred'])
+            self.coef_wdotpred = list(self.coef['Mdot_pred'])
+            print("MdotRated Coefficients : {} - {}".format(len(self.coef_mdotrated), self.coef_mdotrated))
+            print("WdotRated Coefficients : {} - {}".format(len(self.coef_wdotrated), self.coef_wdotrated))
+            print("MdotPred Coefficients : {} - {}".format(len(self.coef_mdotpred), self.coef_mdotpred))
+            print("WdotPred Coefficients : {} - {}".format(len(self.coef_wdotpred), self.coef_wdotpred))
 
-        """필요한 경우 조건을 적용하는 장소이다."""
-        # self.data = self.data[self.data[self.onoffsignal] == 1] #작동중인 데이터만 사용
-        # self.data = self.data.dropna(axis=0) # 결측값을 그냥 날리는 경우
+            #Map data
+            for o in range(self.data.shape[0]):
+                # MapDensity()
+                self.data.at[self.data.index[o], "{}".format(self.MapDensity)] = CP.CoolProp.PropsSI('D', 'P', self.data[self.SuctionPressure][o] * 98.0665 * 1000, 'T', self.data[self.SuctionTemp][o] + 273.15, 'R410A')
+                # EvaMapTemp(Celcius) Quality : 1
+                self.data.at[self.data.index[o], "{}".format(self.EvaMapTemp)] = CP.CoolProp.PropsSI('T', 'P', self.data[self.SuctionPressure][o] * 98.0665 * 1000, 'Q', 0.5, 'R410A') - 273.15
+                # CondMapTemp(Celcius) Quality : 1
+                self.data.at[self.data.index[o], "{}".format(self.CondMapTemp)] = CP.CoolProp.PropsSI('T', 'P', self.data[self.DischargePressure][o] * 98.0665 * 1000, 'Q', 0.5, 'R410A') - 273.15
 
-        self.data.to_csv("{}/After_Outdoor_{}.csv".format(save, out_unit))  # 조건 적용 후
+            # 정격 냉매 질량 유량
+            self.VSENS_MdotRated()
+            # 냉매 질량 유량 가상센서
+            self.VSENS_MdotPred()
+            # 정격 전력
+            self.VSENS_WdotRated()
+            # 전력 가상센서
+            self.VSENS_WdotPred()
+            # 증발기 용량 가상센서
+            self.VSENS_CAPA_EVAP()
+            # 컨덴서 용량 가상센서
+            self.VSENS_CAPA_COND()
+            # UA 가상센서
+            self.VSENS_UA()
+
+            self.data = self.data.sort_values(self.TIME)
+            self.data = self.data.fillna(method='ffill')  # 결측값 처리
+
+            # 저장할 총 경로
+            save = "{}/VirtualSensor/{}/{}/{}".format(self.SAVE_PATH, self.target, self.folder_name, out_unit)
+            self.create_folder(save)
+            self.data.to_csv("{}/Before_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))  # 조건 적용 전
+
+            """필요한 경우 조건을 적용하는 장소이다."""
+            # self.data = self.data[self.data[self.onoffsignal] == 1] #작동중인 데이터만 사용
+            # self.data = self.data.dropna(axis=0) # 결측값을 그냥 날리는 경우
+
+            self.data.to_csv("{}/After_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))  # 조건 적용 후
 
     def VSENS_MdotRated(self):
         #Virtual Sensors : m_dot_rated
-        for o in range(self.data.shape[0] - 1):
+        for o in range(self.data.shape[0]):
             # m_dot_rated
             self.data.at[self.data.index[o], "{}".format(self.MdotRated)] \
-            = (self.coef_mdotrated[0] \
-            + self.coef_mdotrated[1] * self.data[self.EvaMapTemp][o] \
-            + self.coef_mdotrated[2] * pow(self.data[self.EvaMapTemp][o], 2) \
-            + self.coef_mdotrated[3] * pow(self.data[self.EvaMapTemp][o], 3) \
-            + self.coef_mdotrated[4] * self.data[self.CondMapTemp][o] \
-            + self.coef_mdotrated[5] * pow(self.data[self.CondMapTemp][o], 2) \
-            + self.coef_mdotrated[6] * pow(self.data[self.CondMapTemp][o], 3)\
-            + self.coef_mdotrated[7] * self.data[self.EvaMapTemp][o] * self.data[self.CondMapTemp][o] \
-            + self.coef_mdotrated[8] * self.data[self.EvaMapTemp][o] * pow(self.data[self.CondMapTemp][o], 2) \
-            + self.coef_mdotrated[9] * pow(self.data[self.EvaMapTemp][o], 2) * self.data[self.CondMapTemp][o] \
+            = self.data[self.MapDensity][o] * (self.coef_mdotrated[0]
+            + self.coef_mdotrated[1] * self.data[self.EvaMapTemp][o]
+            + self.coef_mdotrated[2] * pow(self.data[self.EvaMapTemp][o], 2)
+            + self.coef_mdotrated[3] * pow(self.data[self.EvaMapTemp][o], 3)
+            + self.coef_mdotrated[4] * self.data[self.CondMapTemp][o]
+            + self.coef_mdotrated[5] * pow(self.data[self.CondMapTemp][o], 2)
+            + self.coef_mdotrated[6] * pow(self.data[self.CondMapTemp][o], 3)
+            + self.coef_mdotrated[7] * self.data[self.EvaMapTemp][o] * self.data[self.CondMapTemp][o]
+            + self.coef_mdotrated[8] * self.data[self.EvaMapTemp][o] * pow(self.data[self.CondMapTemp][o], 2)
+            + self.coef_mdotrated[9] * pow(self.data[self.EvaMapTemp][o], 2) * self.data[self.CondMapTemp][o]
             + self.coef_mdotrated[10] * pow(self.data[self.EvaMapTemp][o], 2) * pow(self.data[self.CondMapTemp][o], 2))
-              # * self.data[self.MapDensity][o]
-        self.data.at[self.data.index[-1], "{}".format(self.MdotRated)] \
-        = (self.coef_mdotrated[0] \
-        + self.coef_mdotrated[1] * self.data[self.EvaMapTemp][o + 1] \
-        + self.coef_mdotrated[2] * pow(self.data[self.EvaMapTemp][o + 1], 2) \
-        + self.coef_mdotrated[3] * pow(self.data[self.EvaMapTemp][o + 1], 3) \
-        + self.coef_mdotrated[4] * self.data[self.CondMapTemp][o + 1] \
-        + self.coef_mdotrated[5] * pow(self.data[self.CondMapTemp][o + 1], 2) \
-        + self.coef_mdotrated[6] * pow(self.data[self.CondMapTemp][o + 1], 3)\
-        + self.coef_mdotrated[7] * self.data[self.EvaMapTemp][o] * self.data[self.CondMapTemp][o + 1] \
-        + self.coef_mdotrated[8] * self.data[self.EvaMapTemp][o] * pow(self.data[self.CondMapTemp][o + 1], 2) \
-        + self.coef_mdotrated[9] * pow(self.data[self.EvaMapTemp][o], 2) * self.data[self.CondMapTemp][o + 1] \
-        + self.coef_mdotrated[10] * pow(self.data[self.EvaMapTemp][o], 2) * pow(self.data[self.CondMapTemp][o + 1], 2))
-          # * self.data[self.MapDensity][o + 1]
 
     def VSENS_MdotPred(self):
-        for o in range(self.data.shape[0] - 1):
-            self.data.at[self.data.index[o], "{}".format(self.MdotPred)] \
-            = (self.coef_mdotpred[0]
+        for o in range(self.data.shape[0]):
+            mdot_pred = (self.data[self.MdotRated][o] / 3600) * (self.coef_mdotpred[0]
             + self.coef_mdotpred[1] * (self.data[self.freq][o] - self.RatedFrequency)
-            + self.coef_mdotpred[2] * pow(self.data[self.freq][o] - self.RatedFrequency, 2)
-               ) * self.data[self.MdotRated][o]
-        self.data.at[self.data.index[-1], "{}".format(self.MdotPred)] \
-        = (self.coef_mdotpred[0]
-           + self.coef_mdotpred[1] * (self.data[self.freq][o] - self.RatedFrequency)
-           + self.coef_mdotpred[2] * pow(self.data[self.freq][o] - self.RatedFrequency, 2)
-           ) * self.data[self.MdotRated][o + 1]
+            + self.coef_mdotpred[2] * pow(self.data[self.freq][o] - self.RatedFrequency, 2))
+            if mdot_pred <= 0:
+                mdot_pred = 0
+            self.data.at[self.data.index[o], "{}".format(self.MdotPred)] = mdot_pred
 
     def VSENS_WdotRated(self):
-        #Virtual Sensors : m_dot_rated
-        for o in range(self.data.shape[0] - 1):
-            # m_dot_rated
+        for o in range(self.data.shape[0]):
+            # MapDensity : kg/m^3
             self.data.at[self.data.index[o], "{}".format(self.WdotRated)] \
-            = (self.coef_wdotrated[0] \
-            + self.coef_wdotrated[1] * self.data[self.EvaMapTemp][o] \
-            + self.coef_wdotrated[2] * pow(self.data[self.EvaMapTemp][o], 2) \
-            + self.coef_wdotrated[3] * pow(self.data[self.EvaMapTemp][o], 3) \
-            + self.coef_wdotrated[4] * self.data[self.CondMapTemp][o] \
-            + self.coef_wdotrated[5] * pow(self.data[self.CondMapTemp][o], 2) \
-            + self.coef_wdotrated[6] * pow(self.data[self.CondMapTemp][o], 3)\
-            + self.coef_wdotrated[7] * self.data[self.EvaMapTemp][o] * self.data[self.CondMapTemp][o] \
-            + self.coef_wdotrated[8] * self.data[self.EvaMapTemp][o] * pow(self.data[self.CondMapTemp][o], 2) \
-            + self.coef_wdotrated[9] * pow(self.data[self.EvaMapTemp][o], 2) * self.data[self.CondMapTemp][o] \
-            + self.coef_wdotrated[10] * pow(self.data[self.EvaMapTemp][o], 2) * pow(self.data[self.CondMapTemp][o], 2)) \
-              * self.data[self.MapDensity][o]
-        self.data.at[self.data.index[-1], "{}".format(self.WdotRated)] \
-        = (self.coef_wdotrated[0] \
-        + self.coef_wdotrated[1] * self.data[self.EvaMapTemp][o + 1] \
-        + self.coef_wdotrated[2] * pow(self.data[self.EvaMapTemp][o + 1], 2) \
-        + self.coef_wdotrated[3] * pow(self.data[self.EvaMapTemp][o + 1], 3) \
-        + self.coef_wdotrated[4] * self.data[self.CondMapTemp][o + 1] \
-        + self.coef_wdotrated[5] * pow(self.data[self.CondMapTemp][o + 1], 2) \
-        + self.coef_wdotrated[6] * pow(self.data[self.CondMapTemp][o + 1], 3)\
-        + self.coef_wdotrated[7] * self.data[self.EvaMapTemp][o] * self.data[self.CondMapTemp][o + 1] \
-        + self.coef_wdotrated[8] * self.data[self.EvaMapTemp][o] * pow(self.data[self.CondMapTemp][o + 1], 2) \
-        + self.coef_wdotrated[9] * pow(self.data[self.EvaMapTemp][o], 2) * self.data[self.CondMapTemp][o + 1] \
-        + self.coef_wdotrated[10] * pow(self.data[self.EvaMapTemp][o], 2) * pow(self.data[self.CondMapTemp][o + 1], 2)) \
-          * self.data[self.MapDensity][o + 1]
+            = self.data[self.MapDensity][o] * (self.coef_wdotrated[0]
+            + self.coef_wdotrated[1] * self.data[self.EvaMapTemp][o]
+            + self.coef_wdotrated[2] * pow(self.data[self.EvaMapTemp][o], 2)
+            + self.coef_wdotrated[3] * pow(self.data[self.EvaMapTemp][o], 3)
+            + self.coef_wdotrated[4] * self.data[self.CondMapTemp][o]
+            + self.coef_wdotrated[5] * pow(self.data[self.CondMapTemp][o], 2)
+            + self.coef_wdotrated[6] * pow(self.data[self.CondMapTemp][o], 3)
+            + self.coef_wdotrated[7] * self.data[self.EvaMapTemp][o] * self.data[self.CondMapTemp][o]
+            + self.coef_wdotrated[8] * self.data[self.EvaMapTemp][o] * pow(self.data[self.CondMapTemp][o], 2)
+            + self.coef_wdotrated[9] * pow(self.data[self.EvaMapTemp][o], 2) * self.data[self.CondMapTemp][o]
+            + self.coef_wdotrated[10] * pow(self.data[self.EvaMapTemp][o], 2) * pow(self.data[self.CondMapTemp][o], 2))
 
     def VSENS_WdotPred(self):
-        for o in range(self.data.shape[0] - 1):
-            self.data.at[self.data.index[o], "{}".format(self.WdotPred)] \
-            = (self.coef_wdotpred[0]
+        for o in range(self.data.shape[0]):
+            w_dot_pred = self.data[self.WdotRated][o] * (self.coef_wdotpred[0]
             + self.coef_wdotpred[1] * (self.data[self.freq][o] - self.RatedFrequency)
-            + self.coef_wdotpred[2] * pow(self.data[self.freq][o] - self.RatedFrequency, 2)
-               ) * self.data[self.WdotRated][o]
-        self.data.at[self.data.index[-1], "{}".format(self.WdotPred)] \
-        = (self.coef_wdotpred[0]
-           + self.coef_wdotpred[1] * (self.data[self.freq][o] - self.RatedFrequency)
-           + self.coef_wdotpred[2] * pow(self.data[self.freq][o] - self.RatedFrequency, 2)
-           ) * self.data[self.WdotRated][o + 1]
+            + self.coef_wdotpred[2] * pow(self.data[self.freq][o] - self.RatedFrequency, 2))
+            if w_dot_pred <= 0:
+                w_dot_pred = 0
+            self.data.at[self.data.index[o], "{}".format(self.WdotPred)] = w_dot_pred
 
     def VSENS_CAPA_EVAP(self):
-        for o in range(self.data.shape[0] - 1):
-            h_suc = CP.CoolProp.PropsSI('H', 'P', self.data[self.SuctionPressure][o] * 98.0665 * 1000, 'T', self.data[self.SuctionTemp][o] + 273.15, 'R410A') #Suction Line
-            h_condOut = CP.CoolProp.PropsSI('H', 'P', self.data[self.SuctionPressure][o] * 98.0665 * 1000, 'T', self.data[self.LiqTemp][o] + 273.15, 'R410A') #Condenser out
-            self.data.at[self.data.index[o], "{}".format(self.hsuc)] = h_suc
-            self.data.at[self.data.index[o], "{}".format(self.hevap)] = h_condOut
-            self.data.at[self.data.index[o], "{}".format(self.del_h_evap)] = abs(h_suc - h_condOut) / 1000
-            self.data.at[self.data.index[o], "{}".format(self.Qevap)] = (abs(h_suc - h_condOut) / 1000) * self.data[self.MdotPred][o]
-        h_suc = CP.CoolProp.PropsSI('H', 'P', self.data[self.SuctionPressure][o + 1] * 98.0665 * 1000, 'T', self.data[self.SuctionTemp][o + 1] + 273.15, 'R410A')  # Suction Line
-        h_condOut = CP.CoolProp.PropsSI('H', 'P', self.data[self.SuctionPressure][o + 1] * 98.0665 * 1000, 'T', self.data[self.LiqTemp][o + 1] + 273.15, 'R410A')  # Condenser out
-        self.data.at[self.data.index[-1], "{}".format(self.hsuc)] = h_suc
-        self.data.at[self.data.index[-1], "{}".format(self.hevap)] = h_condOut
-        self.data.at[self.data.index[-1], "{}".format(self.del_h_evap)] = abs(h_suc - h_condOut) / 1000
-        self.data.at[self.data.index[-1], "{}".format(self.Qevap)] = (abs(h_suc - h_condOut) / 1000) * self.data[self.MdotPred][o + 1]
+        h_condOut_prev = 0 # Two-Phase인 경우 대비
+        for o in range(self.data.shape[0]):
+            try:
+                h_condOut = CP.CoolProp.PropsSI('H', 'P', self.data[self.DischargePressure][o] * 98.0665 * 1000, 'T',
+                                                self.data[self.LiqTemp][o] + 273.15, 'R410A')  # Condenser out
+            except:
+                h_condOut = h_condOut_prev
+            h_condOut_prev = h_condOut  # Two-Phase인 경우 대비
 
-    def VSENS_CAPA_COND(self):
-        for o in range(self.data.shape[0]-1):
+            h_suc = CP.CoolProp.PropsSI('H', 'P', self.data[self.SuctionPressure][o] * 98.0665 * 1000, 'T',
+                                        self.data[self.SuctionTemp][o] + 273.15, 'R410A')  # Suction Line Enthalpy
+            self.data.at[self.data.index[o], "{}".format(self.hCondOut)] = h_condOut
+            self.data.at[self.data.index[o], "{}".format(self.hsuc)] = h_suc
+            self.data.at[self.data.index[o], "{}".format(self.del_h_evap)] = abs(h_suc - h_condOut) / 1000
+            self.data.at[self.data.index[o], "{}".format(self.Qevap)] = self.data[self.MdotPred][o] * (abs(h_suc - h_condOut) / 1000)
+
+    def VSENS_CAPA_COND(self): # 컨덴서 용량 가상센서
+        h_condOut_prev = 0
+        h_dis_prev = 0
+        for o in range(self.data.shape[0]):
+            #Discharge Temperature 컬럼이 여러개 있기 때문에 큰 값을 사용한 것
             T_dis1 = self.data[self.DischargeTemp][o]
             T_dis2 = self.data[self.DischargeTemp_sub][o]
             T_dis = max(T_dis1, T_dis2)
@@ -306,19 +286,32 @@ class COMPRESSORMAPMODEL():
                 h_dis = CP.CoolProp.PropsSI('H', 'P', self.data[self.DischargePressure][o] * 98.0665 * 1000, 'T', T_dis + 273.15, 'R410A') #Discharge Line
                 h_condOut = CP.CoolProp.PropsSI('H', 'P', self.data[self.DischargePressure][o] * 98.0665 * 1000, 'T', self.data[self.LiqTemp][o] + 273.15, 'R410A') #Condenser out
             except:
-                h_dis = 0
-                h_condOut = 0
-
+                h_dis = h_dis_prev
+                h_condOut = h_condOut_prev
+            h_dis_prev = h_dis
+            h_condOut_prev = h_condOut  # Two-Phase인 경우 대비
             self.data.at[self.data.index[o], "{}".format(self.hdis)] = h_dis
-            self.data.at[self.data.index[o], "{}".format(self.hevap)] = h_condOut
-            self.data.at[self.data.index[o], "{}".format(self.del_h_cond)] = abs(h_condOut - h_dis) / 1000
-            self.data.at[self.data.index[o], "{}".format(self.Qcond)] = (abs(h_condOut - h_dis) / 1000) * self.data[self.MdotPred][o]
-        h_dis = CP.CoolProp.PropsSI('H', 'P', self.data[self.DischargePressure][o + 1] * 98.0665 * 1000, 'T', self.data[self.DischargeTemp][o + 1] + 273.15, 'R410A')  # Discharge Line
-        h_condOut = CP.CoolProp.PropsSI('H', 'P', self.data[self.DischargePressure][o + 1] * 98.0665 * 1000, 'T', self.data[self.LiqTemp][o + 1] + 273.15, 'R410A')  # Condenser out
-        self.data.at[self.data.index[-1], "{}".format(self.hdis)] = h_dis
-        self.data.at[self.data.index[-1], "{}".format(self.hevap)] = h_condOut
-        self.data.at[self.data.index[-1], "{}".format(self.del_h_cond)] = abs(h_condOut - h_dis) / 1000
-        self.data.at[self.data.index[-1], "{}".format(self.Qcond)] = (abs(h_condOut - h_dis) / 1000) * self.data[self.MdotPred][o + 1]
+            self.data.at[self.data.index[o], "{}".format(self.hCondOut)] = h_condOut
+            self.data.at[self.data.index[o], "{}".format(self.del_h_cond)] = abs(h_dis - h_condOut) / 1000
+            self.data.at[self.data.index[o], "{}".format(self.Qcond)] = self.data[self.MdotPred][o] * (abs(h_dis - h_condOut) / 1000)
+
+    def VSENS_UA(self): # 컨덴서 열 관류율 가상센서 W/m^2-K
+        for o in range(self.data.shape[0]):
+            T_CondIn = self.data[self.DischargeTemp][o]
+            T_CondOut = self.data[self.CondOutTemp][o]
+            MdotPred = self.data[self.MdotPred][o]
+            T_c_Sat = self.data[self.LiqTemp][o]
+            try:
+                c_p = CP.CoolProp.PropsSI('C', 'P', self.data[self.DischargePressure][o] * 98.0665 * 1000, 'T', self.data[self.DischargeTemp][o] + 273.15, 'R410A')
+            except:
+                c_p = 0
+            self.data.at[self.data.index[o], "{}".format(self.cp)] = c_p
+            self.data.at[self.data.index[o], "{}".format(self.ua)] = MdotPred * c_p * np.log(abs(T_c_Sat - T_CondIn) / abs(T_c_Sat - T_CondOut))
+
+    def VSENS_HEATEXCHANGER_OUTLET_TEMP(self):
+        for o in range(self.data.shape[0]):
+            UA = self.data[self.ua][o]
+            MdotPred = self.data[self.MdotPred][o]
 
     def create_folder(self, directory):
         """
@@ -344,16 +337,19 @@ TsucValue = 'suction_temp1'
 TdisValue = 'discharge_temp1'
 TcondOutValue = 'cond_out_temp1'
 TliqValue = 'double_tube_temp'
+TinAirValue = 'evain_temp'
+ToutAirValue = 'evaout_temp'
 
 TARGET = 'Power'
+COMP_MODEL_NAME = 'GB066' # GB052, GB066, GB070, GB080
 
-COMP_MODEL_NAME = 'GB052' # GB052, GB066, GB070, GB080
 VS = COMPRESSORMAPMODEL(COMP_MODEL_NAME=COMP_MODEL_NAME, TIME=TIME, start=start, end=end)
 
 for outdv in [3069]:
     VS.VSENSOR_PROCESSING(out_unit=outdv,freqValue=freqValue, PdisValue=PdisValue,
                           PsucValue=PsucValue,TsucValue=TsucValue, TdisValue=TdisValue,
-                          TcondOutValue=TcondOutValue, TliqValue=TliqValue, target=TARGET)
+                          TcondOutValue=TcondOutValue, TliqValue=TliqValue,
+                          TinAirValue=TinAirValue, ToutAirValue=ToutAirValue, target=TARGET)
 
 
 
