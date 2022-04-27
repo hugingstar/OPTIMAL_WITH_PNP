@@ -111,7 +111,7 @@ class COMPRESSORMAPMODEL():
             self.data = pd.concat([self._outdata, self._indata], axis=1)
             self.data.index.names = [self.TIME] # 인덱스 컬럼명이 없는 경우를 대비하여 보완
             #문자열로 된 원본 데이터의 '모드'를 숫자로 변환
-            self.data = self.data.replace({"High": 3, "Mid" : 2, "Low" : 1, "Auto" : 4})
+            self.data = self.data.replace({"High": 3, "Mid" : 2, "Low" : 1, "Auto" : 3.5})
 
             # 컬럼이름 탐색
             self.freq = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=freqValue, case=False)])[0]

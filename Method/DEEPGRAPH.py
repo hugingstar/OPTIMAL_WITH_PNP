@@ -686,7 +686,7 @@ class DEEPMODEL():
             self.data.index.names = [self.TIME] # 인덱스 컬럼명이 없는 경우를 대비하여 보완
 
             #문자열로 된 원본 데이터의 '모드'를 숫자로 변환
-            self.data = self.data.replace({"High": 3, "Mid" : 2, "Low" : 1, "Auto" : 4})
+            self.data = self.data.replace({"High": 3, "Mid" : 2, "Low" : 1, "Auto" : 3.5})
 
             # 메타데이터의 풀 네임은 아주 길기 때문에 해당 어구가 포함된 컬럼 찾아서 모델 학습에 사용한다.
             # ON-OFF 시그널

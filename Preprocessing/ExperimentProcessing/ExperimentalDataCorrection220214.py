@@ -158,26 +158,31 @@ class DataCorrection:
         et = '17:40:00'
 
         #Outdoor System
-        self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save,
-                             out_unit=out_unit)
+        self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
         #Inlet Data
         self.OutIntegDataInlet = self.OutIntegData.join(self._outTemp1Data, how='left')
-        self.PlottingOutdoorInlet(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save,
-                             out_unit=out_unit)
+        self.PlottingOutdoorInlet(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
 
         #Outlet
         self.OutIntegDataOutlet = self.OutIntegData.join(self._outTemp2Data, how='left')
-        self.PlottingOutdoorOutlet(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save,
-                             out_unit=out_unit)
+        self.PlottingOutdoorOutlet(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
 
+        if "Unnamed: 0" in self._outunitData:
+            self._outunitData.drop(columns=['Unnamed: 0'], inplace=True)
 
         for indv in list(self.bldginfo[out_unit]):
             self._indpath = "{}/{}/{}{}_indoor_{}.csv".format(self.DATA_PATH, self.folder_name, self.start_month, self.start_date, indv)
             self._indata = pd.read_csv(self._indpath)
-            self._indata = self._indata.replace({"High": 3, "Mid": 2, "Low": 1, "Auto": 0})
-            print(self._indata)
+            self._indata = self._indata.replace({"High": 3, "Mid": 2, "Low": 1, "Auto": 3.5})
+            self._indata.set_index(self.TIME, inplace=True)
 
+            if "Unnamed: 0" in self._indata:
+                self._indata.drop(columns=['Unnamed: 0'], inplace=True)
+            self.IndIntegData = self._outunitData.join(self._indata, how='left')
+            self.IndIntegData.index = pd.to_datetime(self.IndIntegData.index)
+            self.IndIntegData.to_csv("{}/InIntegData_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))
 
+            self.PlottingIndoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit, ind_unit=indv)
 
     def PlottingOutdoorOutlet(self, plt_ST, plt_ET, save, out_unit):
         plt.rcParams["font.family"] = "Times New Roman"
@@ -201,17 +206,21 @@ class DataCorrection:
         tempInlet_avg = solve[['point1', 'point2', 'point4', 'point5', 'point6', 'point7', 'point8', 'point9']].mean(axis=1)
         print(tempInlet_avg)
 
+        df = pd.DataFrame(index=solve.index)
+        df['points'] = tempInlet_avg
+        df.to_csv("{}/OutletTempNodes_Outdoor_{}.csv".format(save, out_unit))
+
         ax1.plot(tt, solve['velocity1'].tolist(), 'r-', linewidth='2', drawstyle='steps-post')
         ax2.plot(tt, solve['volume'].tolist(), 'b-', linewidth='2', drawstyle='steps-post')
         ax3.plot(tt, solve['high_pressure'].tolist(), 'r-', linewidth='2', drawstyle='steps-post')
         ax3.plot(tt, solve['low_pressure'].tolist(), 'b-', linewidth='2', drawstyle='steps-post')
         ax4.plot(tt, solve['outdoor_temperature'].tolist(), 'g--', linewidth='2', drawstyle='steps-post')
-        ax4.legend(['Outdoor temperature'], fontsize=18)
-        for i in [1, 2, 4, 5, 6, 7, 8, 9]:
+        ax4.legend(['Outdoor temperature'], fontsize=18, loc='upper left')
+        for i in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
             ax4.plot(tt, solve['point{}'.format(i)].tolist(), linewidth='1.5', drawstyle='steps-post')
         ax4.plot(tt, tempInlet_avg.tolist(), 'r', linewidth='3', drawstyle='steps-post')
 
-        ax3.legend(['High Pressure', 'Low Pressure'], fontsize=18)
+        ax3.legend(['High Pressure', 'Low Pressure'], fontsize=18, ncol=2, loc='upper left')
 
         gap = 120 # 09~18 : 120
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
@@ -241,7 +250,7 @@ class DataCorrection:
         ax3.set_yticks([0, 20, 40, 60, 80])
         ax4.set_yticks([0, 10, 20, 30, 40])
 
-        ax4.set_ylim([5, 35])
+        ax4.set_ylim([5, 40])
 
         ax1.autoscale(enable=True, axis='x', tight=True)
         ax2.autoscale(enable=True, axis='x', tight=True)
@@ -284,6 +293,10 @@ class DataCorrection:
                                'point22', 'point23', 'point25', 'point26', 'point27', 'point28', 'point29', 'point30',
                                'point32', 'point33', 'point34', 'point36', 'point37', 'point39']].mean(axis=1)
         print(tempInlet_avg)
+
+        df = pd.DataFrame(index=solve.index)
+        df['points'] = tempInlet_avg
+        df.to_csv("{}/InletTempNodes_Outdoor_{}.csv".format(save, out_unit))
 
         ax1.plot(tt, solve['outdoor_temperature'].tolist(), 'g--', linewidth='2', drawstyle='steps-post')
         ax1.legend(['Outdoor temperature'], fontsize=18)
@@ -330,7 +343,7 @@ class DataCorrection:
         ax3.set_ylabel('Temp Measurement\n(Inlet)', fontsize=24)
         ax4.set_ylabel('Temp Measurement\n(Inlet)', fontsize=24)
 
-        ax1.set_xlabel('Time', fontsize=24)
+        ax4.set_xlabel('Time', fontsize=24)
 
         ax1.set_yticks([-5, 0, 5, 10, 15])
         ax2.set_yticks([-5, 0, 5, 10, 15])
@@ -384,9 +397,9 @@ class DataCorrection:
         ax2.plot(tt, solve['discharge_temp1'].tolist(), 'r-', linewidth='2', drawstyle='steps-post')
         ax3.plot(tt, solve['eev1'].tolist(), 'k-', linewidth='2', drawstyle='steps-post')
         ax4.plot(tt, solve['value'].tolist(), 'k-', linewidth='2', drawstyle='steps-post')
-        ax6.plot(tt, solve['fan_step'].tolist(), 'k-', linewidth='2', drawstyle='steps-post')
-        ax7.plot(tt, solve['comp1'].tolist(), 'r-', linewidth='2',alpha=0.8, drawstyle='steps-post')
-        ax7.plot(tt, solve['comp2'].tolist(), 'b--', linewidth='2',alpha=0.8, drawstyle='steps-post')
+        ax6.plot(tt, solve['fan_step'].tolist(), 'k--', linewidth='2', drawstyle='steps-post')
+        ax7.plot(tt, solve['comp1'].tolist(), 'r-', linewidth='2', alpha=0.8, drawstyle='steps-post')
+        ax7.plot(tt, solve['comp2'].tolist(), 'b--', linewidth='2', alpha=0.8, drawstyle='steps-post')
         ax8.plot(tt, solve['comp_current_frequency1'].tolist(), 'r-', linewidth='2', alpha=0.8, drawstyle='steps-post')
         ax8.plot(tt, solve['comp_current_frequency2'].tolist(), 'b--', linewidth='2', alpha=0.8, drawstyle='steps-post')
 
@@ -420,24 +433,22 @@ class DataCorrection:
         ax4.set_xlabel('Time', fontsize=24)
 
         ax1.set_yticks([0, 250, 500, 750, 1000])
-        ax2.set_yticks([0, 20, 40, 60, 80, 100])
+        ax2.set_yticks([0, 20, 40, 60, 80, 100, 120])
         ax3.set_yticks([0, 500, 1000, 1500, 2000, 2500])
         ax4.set_yticks([0, 10000, 20000, 30000])
         ax6.set_yticks([0, 25, 50])
         ax7.set_yticks([0, 1])
         ax8.set_yticks([0, 25, 50, 75, 100])
 
-
-        # ax1.set_ylim([])
-        ax2.set_ylim([-100, 100])
+        ax2.set_ylim([-50, 120])
         ax3.set_ylim([-1500, 2500])
         ax4.set_ylim([-30000, 30000])
-        ax6.set_ylim([0, 200])
+        ax6.set_ylim([0, 250])
         ax7.set_ylim([0, 5])
         ax8.set_ylim([0, 300])
 
         ax1.legend(['Total indoor capacity'], fontsize=18)
-        ax2.legend(['Suction Temperature', 'Discharge Temperature'], fontsize=18, loc='center right')
+        ax2.legend(['Suction Temperature', 'Discharge Temperature'], fontsize=18, loc='upper left', ncol=2)
         ax3.legend(['Expansion value Opening'], fontsize=18)
 
         ax1.autoscale(enable=True, axis='x', tight=True)
@@ -449,9 +460,100 @@ class DataCorrection:
         ax2.grid()
         ax3.grid()
         ax4.grid()
+        ax6.grid()
+        ax7.grid()
+        ax8.grid()
 
         plt.tight_layout()
         plt.savefig("{}/OutdoorSystem_Outdoor_{}.png".format(save, out_unit))
+        # plt.show()
+        plt.clf()
+
+    def PlottingIndoorSystem(self, plt_ST, plt_ET, save, out_unit, ind_unit):
+        plt.rcParams["font.family"] = "Times New Roman"
+        solve = self.IndIntegData.fillna(0)
+        solve = solve[solve.index >= plt_ST]
+        solve = solve[solve.index < plt_ET]
+
+        tt0 = solve.index.tolist()
+        tt = []
+        for i in range(len(tt0)):
+            k = str(tt0[i])[8:16]
+            tt.append(k)
+
+        fig = plt.figure(figsize=(20, 15))
+        ax1 = fig.add_subplot(4, 1, 1)
+        ax2 = fig.add_subplot(4, 1, 2)
+        ax3 = fig.add_subplot(4, 1, 3)
+        ax4 = fig.add_subplot(4, 1, 4)
+        ax5 = ax1.twinx()
+        # ax7 = ax3.twinx()
+
+        ax1.plot(tt, solve['relative_capa_code'].tolist(), 'r-', linewidth='2', drawstyle='steps-post')
+        ax2.plot(tt, solve['evain_temp'].tolist(), 'b-', linewidth='2', drawstyle='steps-post')
+        ax2.plot(tt, solve['evaout_temp'].tolist(), 'r-', linewidth='2', drawstyle='steps-post')
+        ax2.plot(tt, solve['current_room_temp'].tolist(), 'g-', linewidth='2', drawstyle='steps-post')
+        ax2.plot(tt, solve['indoor_set_temp'].tolist(), 'k--', linewidth='2', drawstyle='steps-post')
+        ax3.plot(tt, solve['eev'].tolist(), 'k-', linewidth='2', drawstyle='steps-post')
+        ax5.plot(tt, solve['indoor_power'].tolist(), 'k-', linewidth='2', drawstyle='steps-post')
+        ax4.plot(tt, solve['indoor_fan_speed'].tolist(), 'g-', linewidth='2', drawstyle='steps-post')
+
+        ax2.legend(['Inlet temperature', 'Outlet temperature', 'Zone temperature','Set temperature'], fontsize=18, ncol=2, loc='upper left')
+
+        gap = 120 # 09~18 : 120
+        ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax4.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+
+        ax1.tick_params(axis="x", labelsize=22)
+        ax2.tick_params(axis="x", labelsize=22)
+        ax3.tick_params(axis="x", labelsize=22)
+        ax4.tick_params(axis="x", labelsize=22)
+
+        ax1.tick_params(axis="y", labelsize=22)
+        ax2.tick_params(axis="y", labelsize=22)
+        ax3.tick_params(axis="y", labelsize=22)
+        ax4.tick_params(axis="y", labelsize=22)
+        ax5.tick_params(axis="y", labelsize=22)
+
+
+        ax1.set_ylabel('Relative Capacity', fontsize=24)
+        ax2.set_ylabel('Temperature', fontsize=24)
+        ax3.set_ylabel('EEV', fontsize=24)
+        ax5.set_ylabel('Indoor Signal', fontsize=24)
+        ax4.set_ylabel('Indoor Fan Speed\n(Mode)', fontsize=24)
+
+        ax4.set_xlabel('Time', fontsize=24)
+
+        ax1.set_yticks([0, 25, 50, 75, 100])
+        ax2.set_yticks([0, 20, 40, 60, 80])
+        ax3.set_yticks([0, 500, 1000, 1500, 2000, 2500, 3000])
+        ax5.set_yticks([0, 1])
+        ax4.set_yticks([1, 2, 3, 4])
+
+        ax1.set_ylim([-100, 100])
+        ax2.set_ylim([0, 100])
+        ax3.set_ylim([0, 3000])
+        ax4.set_ylim([0, 5])
+        ax5.set_ylim([0, 3])
+
+
+
+        ax1.autoscale(enable=True, axis='x', tight=True)
+        ax2.autoscale(enable=True, axis='x', tight=True)
+        ax3.autoscale(enable=True, axis='x', tight=True)
+        ax4.autoscale(enable=True, axis='x', tight=True)
+
+        ax1.grid()
+        ax2.grid()
+        ax3.grid()
+        ax4.grid()
+        ax5.grid()
+
+
+        plt.tight_layout()
+        plt.savefig("{}/OutdoorOutlet_Outdoor_{}_Indoor_{}.png".format(save, out_unit, ind_unit))
         # plt.show()
         plt.clf()
 

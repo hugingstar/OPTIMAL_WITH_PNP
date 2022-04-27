@@ -9,6 +9,7 @@
   * 저장할 때는 메타데이터를 Full Sentence로 만들어서 데이터 저장 장소에 저장
 * ExperimentalDataCorrection.py :  실험 데이터 전처리 및 시각화
   * Update (22.04.26) : 리샘플링 사용한 데이터 시계열 통합 데이터 생성
+  * Update (22.04.28) : 실내기 데이터 처리 및 시각화 내용 추가
 
 ### 2. 데이터 저장 장소(Data)
 * 데이터 분석을 위한 데이터를 저장하는 장소
@@ -22,12 +23,13 @@
 
 ### 4. Method
 * DEEPGRAPH.py : 딥러닝 모델의 그래프를 만들고 예측 결과를 살펴본다.
-  * Update (22.04.14) : gpu 사용 추가
-  * Update (22.04.15) : AutoEncoder/Attention Layer 추가하였다.
-  * Update (22.04.18) : 데이터의 index 명이 누락되는 문제를 보완, 결측값 발생시 모델 생성이 안되는 문제를 보완, 
+  * Update(22.04.14) : gpu 사용 추가
+  * Update(22.04.15) : AutoEncoder/Attention Layer 추가하였다.
+  * Update(22.04.18) : 데이터의 index 명이 누락되는 문제를 보완, 결측값 발생시 모델 생성이 안되는 문제를 보완,
   AutoEncoder 같은 경우에는 기존 Seq2seq 대비 성능이 좋다.(헌팅 문제는 해결 진행중), 
   Attention Layer는 현재 값이 예측을 못하는 상태이다.(변화 폭이 너무 큰 상태임.)
-  * Update (22.04.18) : Attention Layer 온도를 너무 높거나 낮게 예측하는 문제 일부 수정
+  * Update(22.04.18) : Attention Layer 온도를 너무 높거나 낮게 예측하는 문제 일부 수정
+  * Update(22.04.28) : Mode Index 수정
   현재 상태에서는 하이퍼파라미터 최적화를 진행하는 것이 예측성능 올리기에 가장 간단한 방법,시간 주기성 부분을 수정
   * Update 
 * SIEMENS.py : 회귀식 기반의 에어컨 최적가동시간을 예측하는 모델
@@ -36,6 +38,7 @@
   * Update(22.04.23) : 냉매 질량 유량 가상센서, 전력 가상센서, 증발기 용량 가상센서, 응축기 용량 가상센서 추가
   * Update(22.04.24) : 열관류율 가상센서, 열교환기 출구 온도 가상센서
   * Update(22.04.25) : VSENS_CAPA_EVAP의 Try-Except에서 Except 값 부분 수정
+  * Update(22.04.28) : Mode Index 수정
 * REGRESSION.py : 회귀식을 만들기 위한 가중치를 출력하는 모델
   * Update(22.04.26) : 간단한 회귀식을 만들기 위한 모델(Hypothesis 설정시 비선형 가능)
   
