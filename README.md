@@ -7,6 +7,8 @@
 * biotData.py : 데이터 베이스에서 필요한 데이터 호출
   * Update (22.04.23) : 분석 목적별로 저장 위치 업데이트(가상센서 목적용 별도로 저장)
   * 저장할 때는 메타데이터를 Full Sentence로 만들어서 데이터 저장 장소에 저장
+* ExperimentalDataCorrection.py :  실험 데이터 전처리 및 시각화
+  * Update (22.04.26) : 리샘플링 사용한 데이터 시계열 통합 데이터 생성
 
 ### 2. 데이터 저장 장소(Data)
 * 데이터 분석을 위한 데이터를 저장하는 장소
@@ -35,7 +37,7 @@
   * Update(22.04.24) : 열관류율 가상센서, 열교환기 출구 온도 가상센서
   * Update(22.04.25) : VSENS_CAPA_EVAP의 Try-Except에서 Except 값 부분 수정
 * REGRESSION.py : 회귀식을 만들기 위한 가중치를 출력하는 모델
-  * Update(22.04.26) : 간단한 회귀식을 만들기 위한 모델(Hypothesis 설정시 비선형 가능) 
+  * Update(22.04.26) : 간단한 회귀식을 만들기 위한 모델(Hypothesis 설정시 비선형 가능)
   
 ### 5. Results
 * Results/{File}
