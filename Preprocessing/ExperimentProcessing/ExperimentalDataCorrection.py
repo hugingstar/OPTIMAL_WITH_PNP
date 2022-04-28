@@ -50,7 +50,6 @@ class DataCorrection:
         self.create_folder('{}/Experiment'.format(self.SAVE_PATH))  # Deepmodel 폴더를 생성
 
     def Visualizing(self, out_unit):
-
         # 건물 인식(딕셔너리에서 포함된 건물로 인식한다.)
         if out_unit in self.jinli.keys():
             self.bldg_name ="Jinli"
@@ -64,6 +63,10 @@ class DataCorrection:
         # Outdoor unit data from biot
         self._outdUnitPath = "{}/{}/outdoor_{}.csv".format(self.DATA_PATH, self.folder_name, out_unit)
         self._outunitData = pd.read_csv(self._outdUnitPath, index_col=self.TIME)
+        self.col = list(pd.Series(list(self._outunitData.columns))[
+                             pd.Series(list(self._outunitData.columns)).str.contains(pat='value', case=False)])
+        self._outunitData[self._outunitData[self.col] < 0] = None
+        self._outunitData.fillna(method='ffill', inplace=True)
         self._outunitData.to_csv("{}/Outdoor_{}.csv".format(save, out_unit))
         # print("[Outdoor Unit biot Data] : {}".format(self._outunitData.shape))
 
@@ -517,7 +520,6 @@ class DataCorrection:
         ax4.tick_params(axis="y", labelsize=22)
         ax5.tick_params(axis="y", labelsize=22)
 
-
         ax1.set_ylabel('Relative Capacity', fontsize=24)
         ax2.set_ylabel('Temperature', fontsize=24)
         ax3.set_ylabel('EEV', fontsize=24)
@@ -538,8 +540,6 @@ class DataCorrection:
         ax4.set_ylim([0, 5])
         ax5.set_ylim([0, 3])
 
-
-
         ax1.autoscale(enable=True, axis='x', tight=True)
         ax2.autoscale(enable=True, axis='x', tight=True)
         ax3.autoscale(enable=True, axis='x', tight=True)
@@ -551,12 +551,10 @@ class DataCorrection:
         ax4.grid()
         ax5.grid()
 
-
         plt.tight_layout()
         plt.savefig("{}/OutdoorOutlet_Outdoor_{}_Indoor_{}.png".format(save, out_unit, ind_unit))
         # plt.show()
         plt.clf()
-
 
     def create_folder(self, directory):
         """

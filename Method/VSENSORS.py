@@ -124,7 +124,7 @@ class COMPRESSORMAPMODEL():
             self.AirSideInletTemp = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=TinAirValue, case=False)])[0]
             self.AirSideOutletTemp = list(pd.Series(list(self.data.columns))[pd.Series(list(self.data.columns)).str.contains(pat=ToutAirValue, case=False)])[0]
 
-            # 컬럼명 생성
+            # 가상센서 결과를 저장하기 위한 컬럼명 생성
             self.CondMapTemp = self.DischargePressure.replace(PdisValue, 'cond_map_temp') # 맵에서 찾은 데이터 컬럼이름 조정
             self.EvaMapTemp = self.SuctionPressure.replace(PsucValue, 'suc_map_temp')
             self.MapDensity = self.DischargePressure.replace(PdisValue, 'density')
@@ -146,6 +146,7 @@ class COMPRESSORMAPMODEL():
             self.ua = self.DischargePressure.replace(PdisValue, 'ua')
             self.cp = self.DischargePressure.replace(PdisValue, 'cp')
 
+            # 컬럼이 두개인것을 모두 활용해야 하므로 아래 과정 추가
             #Frequency
             if self.freq[-1] == '1': #frequency1
                 self.freq_sub = self.freq.replace('1', '2')
@@ -306,6 +307,7 @@ class COMPRESSORMAPMODEL():
             self.data.at[self.data.index[o], "{}".format(self.ua)] = MdotPred * c_p * np.log(abs(T_c_Sat - T_CondIn) / abs(T_c_Sat - T_CondOut))
 
     def VSENS_HEATEXCHANGER_OUTLET_TEMP(self):
+        # 작성중
         for o in range(self.data.shape[0]):
             UA = self.data[self.ua][o]
             MdotPred = self.data[self.MdotPred][o]

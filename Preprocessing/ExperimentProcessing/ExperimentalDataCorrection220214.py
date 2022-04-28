@@ -64,6 +64,10 @@ class DataCorrection:
         # Outdoor unit data from biot
         self._outdUnitPath = "{}/{}/outdoor_{}.csv".format(self.DATA_PATH, self.folder_name, out_unit)
         self._outunitData = pd.read_csv(self._outdUnitPath, index_col=self.TIME)
+        self.col = list(pd.Series(list(self._outunitData.columns))[
+                             pd.Series(list(self._outunitData.columns)).str.contains(pat='value', case=False)])
+        self._outunitData[self._outunitData[self.col] < 0] = None
+        self._outunitData.fillna(method='ffill', inplace=True)
         self._outunitData.to_csv("{}/Outdoor_{}.csv".format(save, out_unit))
         # print("[Outdoor Unit biot Data] : {}".format(self._outunitData.shape))
 
