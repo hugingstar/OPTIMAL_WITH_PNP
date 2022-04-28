@@ -57,12 +57,10 @@ class REGRESSION_SENSORS():
         for epoch in range(nb_epochs + 1):
 
             #만들고 싶은 회귀식
-            # hypothesis = b + W1 * var1 + W2 * var2
             hypothesis = b + W1 * var1 + W2 * var2 + W3 * var1**2 + W4 * var2**2
 
             # Cost
             cost = torch.mean((hypothesis - tar) ** 2)
-
 
             optimizer.zero_grad()
             cost.backward()
