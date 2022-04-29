@@ -42,7 +42,7 @@
   * Update(22.04.28) : Mode Index 수정(Auto : 3.5 사용), 주석 추가
 * REGRESSION.py : 회귀식을 만들기 위한 가중치를 출력하는 모델
   * Update(22.04.26) : 간단한 회귀식을 만들기 위한 모델(Hypothesis 설정시 비선형 가능)
-*VSENSORS_REGRESSION.py : 
+*VSENSORS_REGPARATUNNING.py : 
   * Update(22.04.29) : Discharge, Suction Node의 Properties를 입력으로 잡고 CoolProp에서 
   증발기, 응축기 온도(Quality=0.5), 냉매 밀도를 구하고 회귀식의 Weight를 구함 (Optimizer는 Adam, SGD 사용 가능)
   

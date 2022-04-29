@@ -4,6 +4,7 @@ import torch
 import os
 import torch.optim as optim
 import pandas as pd
+import math
 import CoolProp as CP
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, MaxAbsScaler
 
@@ -60,7 +61,7 @@ class REGRESSION_SENSORS():
         self.folder_name = "{}-{}-{}".format(self.start_year, self.start_month, self.start_date)
         self.create_folder('{}/ParameterTunning'.format(self.SAVE_PATH))  # ParameterTunning 폴더를 생성
 
-    def PROCESSING(self, out_unit, X1, X2, target, PdisValue, PsucValue, TdisValue, TsucValue, Method):
+    def PROCESSING(self, out_unit, X1, X2, target, PdisValue, PsucValue, TdisValue, TsucValue, TotIndCapa, Method):
         # 예측 대상
         self.target = target
 
@@ -87,7 +88,8 @@ class REGRESSION_SENSORS():
                                           pd.Series(list(self._outdata.columns)).str.contains(pat=PdisValue, case=False)])[0]
         self.DischargeTemp = list(pd.Series(list(self._outdata.columns))[
                                       pd.Series(list(self._outdata.columns)).str.contains(pat=TdisValue, case=False)])[0]
-        print(self.target)
+        self.TotalIndoorCapacity = list(pd.Series(list(self._outdata.columns))[
+                                      pd.Series(list(self._outdata.columns)).str.contains(pat=TotIndCapa, case=False)])[0]
 
         # 가상센서 결과를 저장하기 위한 컬럼명 생성
         self.CondMapTemp = self.target.replace(target, 'cond_map_temp')  # 맵에서 찾은 데이터 컬럼이름 조정
@@ -135,19 +137,24 @@ class REGRESSION_SENSORS():
         self.create_folder(save)
         self._outdata.to_csv("{}/Before_Outdoor_{}.csv".format(save, out_unit))  # 조건 적용 전
 
+        """필요한 경우 조건을 적용하는 장소이다."""
+        self._outdata = self._outdata[self._outdata[self.TotalIndoorCapacity] != 0] #작동중인 데이터만 사용
+        # self._outdata = self.data.dropna(axis=0) # 결측값을 그냥 날리는 경우
+
+        self._outdata.to_csv("{}/After_Outdoor_{}.csv".format(save, out_unit))  # 조건 적용 후
+
         self.X1 = list(pd.Series(list(self._outdata.columns))[
                                     pd.Series(list(self._outdata.columns)).str.contains(pat=X1, case=False)])[0]
         self.X2 = list(pd.Series(list(self._outdata.columns))[
                                     pd.Series(list(self._outdata.columns)).str.contains(pat=X2, case=False)])[0]
-
-        self.Method = Method
-        Wdot_rated_list = self.WdotRatedParaTunning()
-
+        self.Method = Method # Optimizer method
+        Wdot_rated_list = self.WdotRatedParaTunning() # Wdot Rated Parameters Tunning
 
         self.coefdict = {
             self.COMP_MODEL_NAME :
                 {"Wdot_rated" : Wdot_rated_list}
         }
+
 
         # for indv in list(self.bldginfo[out_unit]):
         #     #실내기 데이터
@@ -183,11 +190,11 @@ class REGRESSION_SENSORS():
         W10 = torch.zeros(1, requires_grad=True)
 
         if self.Method == "Adam" :
-            optimizer = optim.Adam([W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10], lr=0.001)
+            optimizer = optim.Adam([W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10], lr=0.01)
         elif self.Method == "SGD":
-            optimizer = optim.SGD([W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10], lr=0.001)
+            optimizer = optim.SGD([W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10], lr=0.01)
         else:
-            optimizer = optim.Adam([W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10], lr=0.001)
+            optimizer = optim.Adam([W0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10], lr=0.01)
 
         num = 0
         while True:
@@ -195,7 +202,7 @@ class REGRESSION_SENSORS():
             hypothesis = dens * (W0 + W1 * var1 + W2 * var2 + W3 * var1**2 + W4 * var2**2
                          + W5 * var1**3 + W6 * var2**3 + W7 * var1 * var2 + W8 * var1 * var2**2
                          + W9 * var1**2 * var2 + W10 * var1**2 * var2**2)
-            # Cost
+            # Cost : RMSE
             cost = torch.mean((hypothesis - tar) ** 2)
 
             optimizer.zero_grad()
@@ -206,9 +213,9 @@ class REGRESSION_SENSORS():
             if num % 10000 == 0:
                 # 변수에 따라서 웨이트 값 출력 조정 필요
                 print('Iteration Number: {} - W0: {:.4f} - W1: {:.4f} - W2: {:.4f} - W3: {:.4f} - W4: {:.4f} - W5: {:.4f} - W6: {:.4f} - W7: {:.4f} - W8: {:.4f} - W9: {:.4f} - W10: {:.4f} - cost: {:.4f}'
-                    .format(num, W0.item(),  W1.item(), W2.item(), W3.item(), W4.item(), W5.item(), W6.item(), W7.item(), W8.item(), W9.item(), W10.item(), cost.item()))
+                    .format(num, W0.item(),  W1.item(), W2.item(), W3.item(), W4.item(), W5.item(), W6.item(), W7.item(), W8.item(), W9.item(), W10.item(), math.sqrt(cost.item())))
             num += 1
-            if cost.item() < 1000:
+            if math.sqrt(cost.item()) < 20:
                 break
 
         weights = [W0.item(),  W1.item(), W2.item(), W3.item(), W4.item(), W5.item(), W6.item(), W7.item(), W8.item(), W9.item(), W10.item()]
@@ -238,6 +245,7 @@ PdisValue = 'high_pressure'
 PsucValue = 'low_pressure'
 TdisValue = 'discharge_temp1'
 TsucValue = 'suction_temp1'
+TotIndCapa = 'total_indoor_capa'
 
 # 변수
 # X1 = 'suction_temp1'
@@ -253,4 +261,7 @@ METHOD = 'Adam' #SGD
 RVS = REGRESSION_SENSORS(COMP_MODEL_NAME=COMP_MODEL_NAME, TIME=TIME, start=start, end=end)
 
 for outdv in [909]:
-    RVS.PROCESSING(out_unit=outdv, X1=X1, X2=X2, target=TARGET, PdisValue=PdisValue, PsucValue=PsucValue, TsucValue=TsucValue, TdisValue=TdisValue, Method=METHOD)
+    RVS.PROCESSING(out_unit=outdv, X1=X1, X2=X2, target=TARGET,
+                   PdisValue=PdisValue, PsucValue=PsucValue, TsucValue=TsucValue,
+                   TdisValue=TdisValue, TotIndCapa=TotIndCapa,
+                   Method=METHOD)
