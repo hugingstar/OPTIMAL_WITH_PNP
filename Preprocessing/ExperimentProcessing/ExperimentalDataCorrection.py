@@ -178,6 +178,7 @@ class DataCorrection:
             self._indata = pd.read_csv(self._indpath)
             self._indata = self._indata.replace({"High": 3, "Mid": 2, "Low": 1, "Auto": 3.5})
             self._indata.set_index(self.TIME, inplace=True)
+            self._indata.index = pd.to_datetime(self._indata.index)
 
             if "Unnamed: 0" in self._indata:
                 self._indata.drop(columns=['Unnamed: 0'], inplace=True)
@@ -570,8 +571,8 @@ class DataCorrection:
 
 
 TIME = 'updated_time'
-start ='2022-02-14' #데이터 시작시간
-end = '2022-02-14' #데이터 끝시간
+start ='2022-02-11' #데이터 시작시간
+end = '2022-02-1' #데이터 끝시간
 
 DC = DataCorrection(TIME=TIME, start=start, end=end)
 for i in [3069]:

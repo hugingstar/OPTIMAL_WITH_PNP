@@ -577,8 +577,8 @@ class DataCorrection:
 
 
 TIME = 'updated_time'
-start ='2022-02-14' #데이터 시작시간
-end = '2022-02-14' #데이터 끝시간
+start ='2022-02-15' #데이터 시작시간
+end = '2022-02-15' #데이터 끝시간
 
 DC = DataCorrection(TIME=TIME, start=start, end=end)
 for i in [3069]:
