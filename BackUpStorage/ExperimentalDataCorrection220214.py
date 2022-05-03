@@ -6,8 +6,8 @@ import os
 class DataCorrection:
     def __init__(self, TIME, start, end):
         "파일을 호출할 경로"
-        self.DATA_PATH = "D:/OPTIMAL/Data/Experiment"
-        self.SAVE_PATH = "D:/OPTIMAL/Results"
+        self.DATA_PATH = "/Data/Experiment"
+        self.SAVE_PATH = "/Results"
         self.TIME = TIME
 
         # 진리관
@@ -50,6 +50,7 @@ class DataCorrection:
         self.create_folder('{}/Experiment'.format(self.SAVE_PATH))  # Deepmodel 폴더를 생성
 
     def Visualizing(self, out_unit):
+
         # 건물 인식(딕셔너리에서 포함된 건물로 인식한다.)
         if out_unit in self.jinli.keys():
             self.bldg_name ="Jinli"
@@ -63,12 +64,10 @@ class DataCorrection:
         # Outdoor unit data from biot
         self._outdUnitPath = "{}/{}/outdoor_{}.csv".format(self.DATA_PATH, self.folder_name, out_unit)
         self._outunitData = pd.read_csv(self._outdUnitPath, index_col=self.TIME)
-        print(self._outunitData)
         self.col = list(pd.Series(list(self._outunitData.columns))[
                              pd.Series(list(self._outunitData.columns)).str.contains(pat='value', case=False)])
         self._outunitData[self._outunitData[self.col] < 0] = None
         self._outunitData.fillna(method='ffill', inplace=True)
-        # self._outunitData.index = pd.to_datetime(self._outunitData.index)
         self._outunitData.to_csv("{}/Outdoor_{}.csv".format(save, out_unit))
         # print("[Outdoor Unit biot Data] : {}".format(self._outunitData.shape))
 
@@ -91,22 +90,22 @@ class DataCorrection:
         # print("[AirFlow Velocity Measurement Data] : {}".format(self.flowVelocity.shape))
 
         # Outdoor Unit Temperature1 : Inlet
-        # self._outTemp1Path = "{}/{}/{}{} temp.csv".format(self.DATA_PATH, self.folder_name, self.start_month, self.start_date)
-        # self._outTemp1Data = pd.read_csv(self._outTemp1Path)
-        # self._outTemp1Data[self.TIME] = self._outTemp1Data[['Date', 'Time']].apply(' '.join, axis=1)
-        # self.col1 = list(pd.Series(list(self._outTemp1Data.columns))[
-        #                      pd.Series(list(self._outTemp1Data.columns)).str.contains(pat=self.TIME, case=False)])
-        # self.col2 = list(pd.Series(list(self._outTemp1Data.columns))[
-        #                      pd.Series(list(self._outTemp1Data.columns)).str.contains(pat='point', case=False)])
-        # self.col3 = list(pd.Series(list(self._outTemp1Data.columns))[
-        #                      pd.Series(list(self._outTemp1Data.columns)).str.contains(pat='condout', case=False)])
-        # self.features = self.col1 + self.col2 + self.col3
-        # self._outTemp1Data = self._outTemp1Data[self.features]
-        # self._outTemp1Data.set_index(self.TIME, inplace=True)
-        # self._outTemp1Data.index = pd.to_datetime(self._outTemp1Data.index)
-        # self._outTemp1Data.sort_index(ascending=True)
-        # self._outTemp1Data = self._outTemp1Data.resample('1T').mean()
-        # self._outTemp1Data.to_csv("{}/Temp1_Outdoor_{}.csv".format(save, out_unit))
+        self._outTemp1Path = "{}/{}/{}{} temp.csv".format(self.DATA_PATH, self.folder_name, self.start_month, self.start_date)
+        self._outTemp1Data = pd.read_csv(self._outTemp1Path)
+        self._outTemp1Data[self.TIME] = self._outTemp1Data[['Date', 'Time']].apply(' '.join, axis=1)
+        self.col1 = list(pd.Series(list(self._outTemp1Data.columns))[
+                             pd.Series(list(self._outTemp1Data.columns)).str.contains(pat=self.TIME, case=False)])
+        self.col2 = list(pd.Series(list(self._outTemp1Data.columns))[
+                             pd.Series(list(self._outTemp1Data.columns)).str.contains(pat='point', case=False)])
+        self.col3 = list(pd.Series(list(self._outTemp1Data.columns))[
+                             pd.Series(list(self._outTemp1Data.columns)).str.contains(pat='condout', case=False)])
+        self.features = self.col1 + self.col2 + self.col3
+        self._outTemp1Data = self._outTemp1Data[self.features]
+        self._outTemp1Data.set_index(self.TIME, inplace=True)
+        self._outTemp1Data.index = pd.to_datetime(self._outTemp1Data.index)
+        self._outTemp1Data.sort_index(ascending=True)
+        self._outTemp1Data = self._outTemp1Data.resample('1T').mean()
+        self._outTemp1Data.to_csv("{}/Temp1_Outdoor_{}.csv".format(save, out_unit))
         # print("[Outdoor unit Measurement Temperature 1] : {}".format(self._outTemp1Data.shape))
 
         # Outdoor Unit Temperature2 : Outlet
@@ -132,17 +131,16 @@ class DataCorrection:
 
         #Outdoor unit volume data
         self._outVolume1Path = "{}/{}/{}{} volume1.csv".format(self.DATA_PATH, self.folder_name, self.start_month, self.start_date)
-        # self._outVolume2Path = "{}/{}/{}{} volume2.csv".format(self.DATA_PATH, self.folder_name, self.start_month, self.start_date)
+        self._outVolume2Path = "{}/{}/{}{} volume2.csv".format(self.DATA_PATH, self.folder_name, self.start_month, self.start_date)
         self._outVolume1Data = pd.read_csv(self._outVolume1Path)
-        # self._outVolume2Data = pd.read_csv(self._outVolume2Path)
+        self._outVolume2Data = pd.read_csv(self._outVolume2Path)
         self.col1 = list(pd.Series(list(self._outVolume1Data.columns))[
                              pd.Series(list(self._outVolume1Data.columns)).str.contains(pat='Time', case=False)])
-        # self.col2 = list(pd.Series(list(self._outVolume2Data.columns))[
-        #                      pd.Series(list(self._outVolume2Data.columns)).str.contains(pat='Time', case=False)])
+        self.col2 = list(pd.Series(list(self._outVolume2Data.columns))[
+                             pd.Series(list(self._outVolume2Data.columns)).str.contains(pat='Time', case=False)])
         self._outVolume1Data = self._outVolume1Data.rename(columns={self.col1[0]: self.TIME})
-        # self._outVolume2Data = self._outVolume2Data.rename(columns={self.col2[0]: self.TIME})
-        # self._outVolumeData = pd.concat([self._outVolume1Data, self._outVolume2Data], axis=0, ignore_index=True)
-        self._outVolumeData = self._outVolume1Data
+        self._outVolume2Data = self._outVolume2Data.rename(columns={self.col2[0]: self.TIME})
+        self._outVolumeData = pd.concat([self._outVolume1Data, self._outVolume2Data], axis=0, ignore_index=True)
         self._outVolumeData['Date'] = self.folder_name
         self._outVolumeData[self.TIME] = self._outVolumeData[['Date', self.TIME]].apply(' '.join, axis=1)
         self._outVolumeData[self.TIME] = pd.to_datetime(self._outVolumeData[self.TIME])
@@ -166,8 +164,8 @@ class DataCorrection:
         #Outdoor System
         self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
         #Inlet Data
-        # self.OutIntegDataInlet = self.OutIntegData.join(self._outTemp1Data, how='left')
-        # self.PlottingOutdoorInlet(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
+        self.OutIntegDataInlet = self.OutIntegData.join(self._outTemp1Data, how='left')
+        self.PlottingOutdoorInlet(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
 
         #Outlet
         self.OutIntegDataOutlet = self.OutIntegData.join(self._outTemp2Data, how='left')
@@ -524,6 +522,7 @@ class DataCorrection:
         ax4.tick_params(axis="y", labelsize=22)
         ax5.tick_params(axis="y", labelsize=22)
 
+
         ax1.set_ylabel('Relative Capacity', fontsize=24)
         ax2.set_ylabel('Temperature', fontsize=24)
         ax3.set_ylabel('EEV', fontsize=24)
@@ -544,6 +543,8 @@ class DataCorrection:
         ax4.set_ylim([0, 5])
         ax5.set_ylim([0, 3])
 
+
+
         ax1.autoscale(enable=True, axis='x', tight=True)
         ax2.autoscale(enable=True, axis='x', tight=True)
         ax3.autoscale(enable=True, axis='x', tight=True)
@@ -555,10 +556,12 @@ class DataCorrection:
         ax4.grid()
         ax5.grid()
 
+
         plt.tight_layout()
         plt.savefig("{}/OutdoorOutlet_Outdoor_{}_Indoor_{}.png".format(save, out_unit, ind_unit))
         # plt.show()
         plt.clf()
+
 
     def create_folder(self, directory):
         """
@@ -574,8 +577,8 @@ class DataCorrection:
 
 
 TIME = 'updated_time'
-start ='2022-02-08' #데이터 시작시간
-end = '2022-02-08' #데이터 끝시간
+start ='2022-02-14' #데이터 시작시간
+end = '2022-02-14' #데이터 끝시간
 
 DC = DataCorrection(TIME=TIME, start=start, end=end)
 for i in [3069]:

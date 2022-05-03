@@ -6,8 +6,8 @@ import os
 class DataCorrection:
     def __init__(self, TIME, start, end):
         "파일을 호출할 경로"
-        self.DATA_PATH = "D:/OPTIMAL/Data/Experiment"
-        self.SAVE_PATH = "D:/OPTIMAL/Results"
+        self.DATA_PATH = "/Data/Experiment"
+        self.SAVE_PATH = "/Results"
         self.TIME = TIME
 
         # 진리관
@@ -182,10 +182,10 @@ class DataCorrection:
 
             if "Unnamed: 0" in self._indata:
                 self._indata.drop(columns=['Unnamed: 0'], inplace=True)
-
             self.IndIntegData = self._outunitData.join(self._indata, how='left')
             self.IndIntegData.index = pd.to_datetime(self.IndIntegData.index)
             self.IndIntegData.to_csv("{}/InIntegData_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))
+
             self.PlottingIndoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit, ind_unit=indv)
 
     def PlottingOutdoorOutlet(self, plt_ST, plt_ET, save, out_unit):
@@ -220,7 +220,7 @@ class DataCorrection:
         ax3.plot(tt, solve['low_pressure'].tolist(), 'b-', linewidth='2', drawstyle='steps-post')
         ax4.plot(tt, solve['outdoor_temperature'].tolist(), 'g--', linewidth='2', drawstyle='steps-post')
         ax4.legend(['Outdoor temperature'], fontsize=18, loc='upper left')
-        for i in [1]:# 2, 3, 4, 5, 6, 7, 8, 9]:
+        for i in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
             ax4.plot(tt, solve['point{}'.format(i)].tolist(), linewidth='1.5', drawstyle='steps-post')
         ax4.plot(tt, tempInlet_avg.tolist(), 'r', linewidth='3', drawstyle='steps-post')
 
@@ -292,10 +292,10 @@ class DataCorrection:
         ax4 = fig.add_subplot(4, 1, 4)
 
         # Temperature Average
-        tempInlet_avg = solve[['point1', 'point2', 'point3', 'point4', 'point6', 'point7', 'point9', 'point10',
+        tempInlet_avg = solve[['point1', 'point2', 'point3', 'point4', 'point5', 'point6', 'point7', 'point8', 'point10',
                                'point11', 'point12', 'point13', 'point14', 'point15', 'point17','point18', 'point20',
-                               'point22', 'point23', 'point24', 'point25', 'point26', 'point29', 'point30',
-                               'point32', 'point33', 'point34', 'point36', 'point37']].mean(axis=1)
+                               'point22', 'point23', 'point25', 'point26', 'point27', 'point28', 'point29', 'point30',
+                               'point32', 'point33', 'point34', 'point36', 'point37', 'point39']].mean(axis=1)
         print(tempInlet_avg)
 
         df = pd.DataFrame(index=solve.index)
@@ -304,7 +304,7 @@ class DataCorrection:
 
         ax1.plot(tt, solve['outdoor_temperature'].tolist(), 'g--', linewidth='2', drawstyle='steps-post')
         ax1.legend(['Outdoor temperature'], fontsize=18)
-        for i in [1, 2, 3, 4, 6, 7, 9, 10]: #Except 5 8
+        for i in [1, 2, 3, 4, 5, 6, 7, 8, 10]: #Except 9
             ax1.plot(tt, solve['point{}'.format(i)].tolist(), linewidth='1.5', drawstyle='steps-post')
         ax1.plot(tt, tempInlet_avg.tolist(), 'r', linewidth='3', drawstyle='steps-post')
 
@@ -316,13 +316,13 @@ class DataCorrection:
 
         ax3.plot(tt, solve['outdoor_temperature'].tolist(), 'g--', linewidth='2', drawstyle='steps-post')
         ax3.legend(['Outdoor temperature'], fontsize=18)
-        for i in [22, 23, 24, 25, 26, 29, 30]: #except 21 27 28
+        for i in [22, 23, 25, 26, 27, 28, 29, 30]: #except 21 24
             ax3.plot(tt, solve['point{}'.format(i)].tolist(), linewidth='1.5', drawstyle='steps-post')
         ax3.plot(tt, tempInlet_avg.tolist(), 'r', linewidth='3', drawstyle='steps-post')
 
         ax4.plot(tt, solve['outdoor_temperature'].tolist(), 'g--', linewidth='2', drawstyle='steps-post')
         ax4.legend(['Outdoor temperature'], fontsize=18)
-        for i in [32, 33, 34, 36, 37]: #Except 31 35 38 39 40
+        for i in [32, 33, 34, 36, 37, 39]: #Except 31, 35, 38, 40
             ax4.plot(tt, solve['point{}'.format(i)].tolist(), linewidth='1.5', drawstyle='steps-post')
         ax4.plot(tt, tempInlet_avg.tolist(), 'r', linewidth='3', drawstyle='steps-post')
 
@@ -571,8 +571,8 @@ class DataCorrection:
 
 
 TIME = 'updated_time'
-start ='2022-02-11' #데이터 시작시간
-end = '2022-02-11' #데이터 끝시간
+start ='2022-02-14' #데이터 시작시간
+end = '2022-02-14' #데이터 끝시간
 
 DC = DataCorrection(TIME=TIME, start=start, end=end)
 for i in [3069]:
