@@ -85,7 +85,9 @@ class DataCorrection:
         # Outdoor velocity
         self.OutdoorVelocity = self._outFlowData[[self.col1[0], self.col2[0]]]
         self.OutdoorVelocity = self.OutdoorVelocity.rename(columns={self.col1[0]: self.TIME, self.col2[0]:'outdoor_velocity'})
-        for _o in range(1, 3): # 앞쪽 3개
+        print(self.col1[0], self.col2[0])
+        for _o in [1]: # 앞쪽 3개
+            print(self.col1[_o], self.col2[_o])
             tem = self._outFlowData[[self.col1[_o], self.col2[_o]]]
             tem = tem.rename(columns={self.col1[_o]: self.TIME, self.col2[_o]: 'outdoor_velocity'})
             self.OutdoorVelocity = pd.concat([self.OutdoorVelocity, tem], axis=0, ignore_index=True)
@@ -96,9 +98,11 @@ class DataCorrection:
         self.OutdoorVelocity.to_csv("{}/Outdoor_{}_Measure_OutdoorVelocity.csv".format(save, out_unit))
 
         # Indoor velocity
-        self.IndoorVelocity = self._outFlowData[[self.col1[3], self.col2[3]]]
-        self.IndoorVelocity = self.IndoorVelocity.rename(columns={self.col1[3]: self.TIME, self.col2[3]: 'indoor_velocity'})
-        for _o in range(4, 6): # 뒤쪽 3개
+        self.IndoorVelocity = self._outFlowData[[self.col1[2], self.col2[2]]]
+        self.IndoorVelocity = self.IndoorVelocity.rename(columns={self.col1[2]: self.TIME, self.col2[2]: 'indoor_velocity'})
+        print(self.col1[2], self.col2[2])
+        for _o in [3, 4]: # 뒤쪽 3개
+            print(self.col1[_o], self.col2[_o])
             tem = self._outFlowData[[self.col1[_o], self.col2[_o]]]
             tem = tem.rename(columns={self.col1[_o]: self.TIME, self.col2[_o]: 'indoor_velocity'})
             self.IndoorVelocity = pd.concat([self.IndoorVelocity, tem], axis=0, ignore_index=True)
@@ -178,13 +182,13 @@ class DataCorrection:
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
         st = '09:00:00'
-        et = '17:40:00'
+        et = '18:00:00'
 
         #Outdoor biot data
-        # self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
+        self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
         #Outdoor Measurement
         self.PlottingOutdoorMesurement(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
-
+        #Indoor Measurement
         self.PlottingIndoorMesurement(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
 
         for indv in list(self.bldginfo[out_unit]):
@@ -238,7 +242,7 @@ class DataCorrection:
         print(df1)
 
         cd_col_list = []
-        for _ in [1, 2, 4, 5, 6, 7, 8, 9]: #inlet 1~9
+        for _ in [1, 2, 3, 4, 5, 6, 7, 9]: #inlet 1~9
             cd_col_list.append('point{}'.format(_))
             #가장 큰 것 : 19
             ax4.plot(tt, solve['point{}'.format(_)].tolist(), 'k', alpha=0.2, linewidth='2', drawstyle='steps-post')
@@ -284,19 +288,19 @@ class DataCorrection:
 
         ax4.set_xlabel('Time', fontsize=26)
 
-        ax1.set_yticks([0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2])
-        ax2.set_yticks([0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2])
+        ax1.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        ax2.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
         ax3.set_yticks([0, 10, 20, 30, 40, 50])
-        ax4.set_yticks([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50])
-        ax6.set_yticks([0, 500, 1000, 2000, 3000])
-        ax7.set_yticks([0, 5, 10, 15, 20])
+        ax4.set_yticks([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100])
+        ax6.set_yticks([0, 1000, 2000, 3000, 4000, 5000])
+        ax7.set_yticks([0, 100, 200, 300, 400, 500])
 
-        ax1.set_ylim([0, 1])
-        ax2.set_ylim([0, 1])
+        ax1.set_ylim([0, 5])
+        ax2.set_ylim([0, 5])
         ax3.set_ylim([0, max(solve['fan_step'].tolist())*1.2])
-        ax4.set_ylim([15, 50])
-        ax6.set_ylim([0, 3000])
-        ax7.set_ylim([0, 20])
+        ax4.set_ylim([15, 60])
+        ax6.set_ylim([0, 5000])
+        ax7.set_ylim([0, 400])
 
         ax1.autoscale(enable=True, axis='x', tight=True)
         ax2.autoscale(enable=True, axis='x', tight=True)
@@ -423,26 +427,33 @@ class DataCorrection:
         ax3.plot(tt, solve['fan_step'].tolist(), 'k', linewidth='2', drawstyle='steps-post')
 
         cd_col_list = []
-        for _ in [2, 3, 4, 5, 7, 8, 9]: #outlet 1~10
+        for _ in [1, 3, 4, 6, 7, 8, 10]:# 2, 3, 4, 5, 7, 8, 9]: #outlet 1~10
             cd_col_list.append('condout{}'.format(_))
             #가장 큰것 :
             ax4.plot(tt, solve['condout{}'.format(_)].tolist(), 'r', alpha=0.2, linewidth='3', drawstyle='steps-post')
         avg_temp_list = solve[cd_col_list].mean(axis=1)
         ax4.plot(tt, avg_temp_list, 'r', linewidth='4', drawstyle='steps-post')
 
-
+        df1 = pd.DataFrame({'OutdoorHX_outlet_Average_Temperature': avg_temp_list})
+        df1.to_csv("{}/Outdoor_{}_OutdoorHX_outlet_AvgTemp.csv".format(save, out_unit))
+        print(df1)
 
         cd_col_list = []
-        for _ in [1, 2, 3, 4, 7, 8,
-                  10, 11, 12, 13, 14, 15, 17, 18, 19, 20,
-                  22, 23, 25, 26, 27, 28, 29, 30,
-                  32, 33, 34, 36, 39]: #inlet 1~40
+        for _ in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                  11, 12, 13, 14, 15, 17, 18, 19, 20,
+                  22, 23, 24, 25, 27, 29, 30,
+                  32, 34, 36, 37, 39]:
+                  # 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+                  # 31, 32, 33, 34, 35, 36, 37]:
             cd_col_list.append('point{}'.format(_))
             #가장 큰 것 : 19
             ax4.plot(tt, solve['point{}'.format(_)].tolist(), 'k', alpha=0.2, linewidth='2', drawstyle='steps-post')
         avg_temp_list = solve[cd_col_list].mean(axis=1)
         ax4.plot(tt, avg_temp_list, 'k', linewidth='4', drawstyle='steps-post')
 
+        df2 = pd.DataFrame({'OutdoorHX_inlet_Average_Temperature': avg_temp_list})
+        df2.to_csv("{}/Outdoor_{}_OutdoorHX_inlet_AvgTemp.csv".format(save, out_unit))
+        print(df2)
 
         ax6.plot(tt, solve['outdoor_volume'].tolist(), 'b--', linewidth='2', drawstyle='steps-post')
         ax7.plot(tt, solve['indoor_volume'].tolist(), 'b--', linewidth='2', drawstyle='steps-post')
@@ -479,19 +490,19 @@ class DataCorrection:
 
         ax4.set_xlabel('Time', fontsize=26)
 
-        ax1.set_yticks([0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2])
-        ax2.set_yticks([0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2])
+        ax1.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        ax2.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
         ax3.set_yticks([0, 10, 20, 30, 40, 50])
         ax4.set_yticks([0, 5, 10, 15, 20, 25, 30])
-        ax6.set_yticks([0, 500, 1000, 2000, 3000])
-        ax7.set_yticks([0, 5, 10, 15, 20])
+        ax6.set_yticks([0, 1000, 2000, 3000, 4000, 5000])
+        ax7.set_yticks([0, 100, 200, 300, 400, 500])
 
-        ax1.set_ylim([0, 1])
-        ax2.set_ylim([0, 1])
+        ax1.set_ylim([0, 5])
+        ax2.set_ylim([0, 5])
         ax3.set_ylim([0, max(solve['fan_step'].tolist())*1.2])
         ax4.set_ylim([0, 30])
-        ax6.set_ylim([0, 3000])
-        ax7.set_ylim([0, 20])
+        ax6.set_ylim([0, 5000])
+        ax7.set_ylim([0, 400])
 
         ax1.autoscale(enable=True, axis='x', tight=True)
         ax2.autoscale(enable=True, axis='x', tight=True)
@@ -640,8 +651,8 @@ class DataCorrection:
             print('Error: creating directory. ' + directory)
 
 TIME = 'updated_time'
-start ='2022-02-14' #데이터 시작시간
-end = '2022-02-14' #데이터 끝시간
+start ='2022-02-09' #데이터 시작시간
+end = '2022-02-09' #데이터 끝시간
 
 DC = DataCorrection(TIME=TIME, start=start, end=end)
 for i in [3069]:
