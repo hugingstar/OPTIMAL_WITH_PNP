@@ -33,14 +33,15 @@
   * Update(22.04.18) : Attention Layer 온도를 너무 높거나 낮게 예측하는 문제 일부 수정
   * Update(22.04.28) : Mode Index 수정
   현재 상태에서는 하이퍼파라미터 최적화를 진행하는 것이 예측성능 올리기에 가장 간단한 방법,시간 주기성 부분을 수정
-  * Update 
 * SIEMENS.py : 회귀식 기반의 에어컨 최적가동시간을 예측하는 모델
   * Update (22.04.14) : 파일 추가
-* VSENSORS.py : 실외기 데이터를 사용한 가상센서
+* VSENSORS.py : 실외기 데이터를 사용한 가상센서 버전 1
   * Update(22.04.23) : 냉매 질량 유량 가상센서, 전력 가상센서, 증발기 용량 가상센서, 응축기 용량 가상센서 추가
   * Update(22.04.24) : 열관류율 가상센서, 열교환기 출구 온도 가상센서
   * Update(22.04.25) : VSENS_CAPA_EVAP의 Try-Except에서 Except 값 부분 수정
   * Update(22.04.28) : Mode Index 수정(Auto : 3.5 사용), 주석 추가
+* VSENSORS_OUTDOORUNIT.py : 실외기 데이터를 사용한 가상센서
+  * Update(22.05.12) : 실외기 데이터를 사용한 가상센서 PH, TS 다이어그램 추가
 * REGRESSION.py : 회귀식을 만들기 위한 가중치를 출력하는 모델
   * Update(22.04.26) : 간단한 회귀식을 만들기 위한 모델(Hypothesis 설정시 비선형 가능)
 *VSENSORS_REGPARATUNNING.py : 

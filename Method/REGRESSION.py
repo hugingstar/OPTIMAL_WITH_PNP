@@ -39,7 +39,7 @@ class REGRESSION_SENSORS():
 
     def REG_MODEL(self, x1, x2, y):
         # 입력값을 설정하여 텐서로 만들어 준다.
-        var1 = torch.Tensor(self.data[x1].tolist()).unsqueeze(1)
+        var1 = torch.Tensor(self.data[x1].tolist()).unsqueeze(1) #unsqeeze : 1인 차원을 생성하는 함수이다.
         var2 = torch.Tensor(self.data[x2].tolist()).unsqueeze(1)
         tar = torch.Tensor(self.data[y].tolist()).unsqueeze(1)
 
@@ -53,7 +53,7 @@ class REGRESSION_SENSORS():
         # Optimizer
         optimizer = optim.SGD([W1, W2, W3, W4, b], lr=0.01)
         # Epochs
-        nb_epochs = 100
+        nb_epochs = 1000
         for epoch in range(nb_epochs + 1):
 
             #만들고 싶은 회귀식
@@ -67,7 +67,7 @@ class REGRESSION_SENSORS():
             optimizer.step()
 
             # 100번마다 로그 출력
-            if epoch % 10 == 0:
+            if epoch % 100 == 0:
                 #변수에 따라서 웨이트 값 출력 조정 필요
                 print('Epoch {:4d}/{} - b : {:.4f} - W1 : {:.4f} - W2 : {:.4f} - W3 : {:.4f} - W4 : {:.4f}  Cost: {:.4f}'
                       .format(epoch, nb_epochs, b.item(), W1.item(), W2.item(), W3.item(), W4.item(), cost.item()))

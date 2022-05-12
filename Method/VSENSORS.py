@@ -126,8 +126,8 @@ class COMPRESSORMAPMODEL():
 
             # 가상센서 결과를 저장하기 위한 컬럼명 생성
             self.CondMapTemp = self.DischargePressure.replace(PdisValue, 'cond_map_temp') # 맵에서 찾은 데이터 컬럼이름 조정
-            self.EvaMapTemp = self.SuctionPressure.replace(PsucValue, 'suc_map_temp')
-            self.MapDensity = self.DischargePressure.replace(PdisValue, 'density')
+            self.EvaMapTemp = self.SuctionPressure.replace(PsucValue, 'evap_map_temp')
+
             self.MdotRated = self.DischargePressure.replace(PdisValue, 'm_dot_rated')
             self.WdotRated = self.DischargePressure.replace(PdisValue, 'w_dot_rated')
             self.MdotPred = self.DischargePressure.replace(PdisValue, 'm_dot_pred')
@@ -178,6 +178,7 @@ class COMPRESSORMAPMODEL():
                 # CondMapTemp(Celcius) Quality : 1
                 self.data.at[self.data.index[o], "{}".format(self.CondMapTemp)] = CP.CoolProp.PropsSI('T', 'P', self.data[self.DischargePressure][o] * 98.0665 * 1000, 'Q', 0.5, 'R410A') - 273.15
 
+
             # 정격 냉매 질량 유량
             self.VSENS_MdotRated()
             # 냉매 질량 유량 가상센서
@@ -204,7 +205,6 @@ class COMPRESSORMAPMODEL():
             """필요한 경우 조건을 적용하는 장소이다."""
             # self.data = self.data[self.data[self.onoffsignal] == 1] #작동중인 데이터만 사용
             # self.data = self.data.dropna(axis=0) # 결측값을 그냥 날리는 경우
-
             self.data.to_csv("{}/After_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, indv))  # 조건 적용 후
 
     def VSENS_MdotRated(self):
@@ -344,7 +344,7 @@ COMP_MODEL_NAME = 'GB066' # GB052, GB066, GB070, GB080
 
 VS = COMPRESSORMAPMODEL(COMP_MODEL_NAME=COMP_MODEL_NAME, TIME=TIME, start=start, end=end)
 
-for outdv in [3069]:
+for outdv in [3067]:
     VS.VSENSOR_PROCESSING(out_unit=outdv,freqValue=freqValue, PdisValue=PdisValue,
                           PsucValue=PsucValue,TsucValue=TsucValue, TdisValue=TdisValue,
                           TcondOutValue=TcondOutValue, TliqValue=TliqValue,

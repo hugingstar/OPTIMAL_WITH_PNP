@@ -72,7 +72,6 @@ class DataCorrection:
         self._outunitData.fillna(method='ffill', inplace=True)
         self._outunitData.to_csv("{}/Outdoor_{}.csv".format(save, out_unit))
         # print("[Outdoor Unit biot Data] : {}".format(self._outunitData.shape))
-
         self._outFlowPath = "{}/{}/{}{} flow.csv".format(self.DATA_PATH, self.folder_name, self.start_month,
                                                          self.start_date)
         self._outFlowData = pd.read_csv(self._outFlowPath)
@@ -81,7 +80,6 @@ class DataCorrection:
                              pd.Series(list(self._outFlowData.columns)).str.contains(pat='Time', case=False)])
         self.col2 = list(pd.Series(list(self._outFlowData.columns))[
                              pd.Series(list(self._outFlowData.columns)).str.contains(pat='velocity', case=False)])
-
         # Outdoor velocity
         self.OutdoorVelocity = self._outFlowData[[self.col1[0], self.col2[0]]]
         self.OutdoorVelocity = self.OutdoorVelocity.rename(columns={self.col1[0]: self.TIME, self.col2[0]:'outdoor_velocity'})
@@ -156,7 +154,6 @@ class DataCorrection:
         self._inTempData = self._inTempData.resample('1T').mean()
         self._inTempData.to_csv("{}/Outdoor_{}_Measure_IndoorTemp.csv".format(save, out_unit))
 
-
         self.OutIntegData = self._outunitData.join(self.OutdoorVelocity, how='left')
         self.OutIntegData = self.OutIntegData.join(self.IndoorVelocity, how='left')
         self.OutIntegData = self.OutIntegData.join(self._outVolumeData, how='left')
@@ -181,7 +178,7 @@ class DataCorrection:
         et = '17:40:00'
 
         #Outdoor biot data
-        # self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
+        self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
         #Outdoor Measurement
         self.PlottingOutdoorMesurement(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
 
@@ -429,8 +426,6 @@ class DataCorrection:
             ax4.plot(tt, solve['condout{}'.format(_)].tolist(), 'r', alpha=0.2, linewidth='3', drawstyle='steps-post')
         avg_temp_list = solve[cd_col_list].mean(axis=1)
         ax4.plot(tt, avg_temp_list, 'r', linewidth='4', drawstyle='steps-post')
-
-
 
         cd_col_list = []
         for _ in [1, 2, 3, 4, 7, 8,
