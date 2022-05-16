@@ -188,8 +188,8 @@ class DataCorrection:
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '14:30:00'
-        et = '18:01:00'
+        st = '00:00:00'
+        et = '23:58:00'
 
         # Plotting
         self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
@@ -224,31 +224,31 @@ class DataCorrection:
 
         # Inlet
         cd_col_list = []
-        for _ in [3, 4, 5, 6, 7, 9, 10,
-                  12, 14, 15, 16, 17, 20,
-                  21, 22, 23, 24, 25, 26, 29, 30,
-                  32, 33, 34, 36, 37, 38,
-                  41, 44, 45, 46, 47, 49, 51, 52]:
+        for _ in [55, 56, 60, 61]:# 3, 4, 5, 6, 7, 9, 10,
+                  # 12, 14, 15, 16, 17, 20,
+                  # 21, 22, 23, 24, 25, 26, 29, 30,
+                  # 32, 33, 34, 36, 37, 38,
+                  # 41, 44, 45, 46, 47, 49, 51, 52]:
             cd_col_list.append('point{}'.format(_))
             # 가장 큰 것 : 19
             ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'k', alpha=0.2, linewidth='2', drawstyle='steps-post')
         avg_temp_list = solve[cd_col_list].mean(axis=1)
         lineavg1, = ax3.plot(tt, avg_temp_list, 'k', linewidth='4', drawstyle='steps-post', label='Inlet Average Temperature')
 
-        df1 = pd.DataFrame({'IndoorHX_inlet_Average_Temperature': avg_temp_list})
+        df1 = pd.DataFrame({'Air_inlet_Average_Temperature': avg_temp_list})
         df1.to_csv("{}/Outdoor_{}_inlet_AvgTemp.csv".format(save, out_unit))
         print(df1)
 
         # Outlet
         cd_col_list = []
-        for _ in [65, 64, 63, 61, 60, 59, 58, 57, 56, 55, 54, 53]:
+        for _ in [14]:# 64, 63, 61, 60, 59, 58, 57, 56, 55, 54, 53]: 14,
             cd_col_list.append('point{}'.format(_))
             # 가장 큰 것 : 19
-            ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'r', alpha=0.2, linewidth='2', drawstyle='steps-post')
+            ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'b', alpha=0.2, linewidth='2', drawstyle='steps-post')
         avg_temp_list = solve[cd_col_list].mean(axis=1)
-        lineavg2, = ax3.plot(tt, avg_temp_list, 'r', linewidth='4', drawstyle='steps-post', label='Outlet Average Temperature')
+        lineavg2, = ax3.plot(tt, avg_temp_list, 'b', linewidth='4', drawstyle='steps-post', label='Outlet Average Temperature')
 
-        df2 = pd.DataFrame({'IndoorHX_outlet_Average_Temperature': avg_temp_list})
+        df2 = pd.DataFrame({'Air_outlet_Average_Temperature': avg_temp_list})
         df2.to_csv("{}/Outdoor_{}_outlet_AvgTemp.csv".format(save, out_unit))
         print(df2)
 
@@ -256,7 +256,7 @@ class DataCorrection:
         ax2.legend(['Air Velocity ({})'.format('$m/s$')], fontsize=18, loc='upper left')
         ax3.legend(handles=[lineavg1, lineavg2], fontsize=18, loc='upper right')
 
-        gap = 60  # 09~18 : 120
+        gap = 240  # 09~18 : 120
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
@@ -347,7 +347,7 @@ class DataCorrection:
         ax8.plot(tt, solve['discharge_temp2'].tolist(), 'g-', linewidth='2', drawstyle='steps-post', alpha=0.8)
         ax8.plot(tt, solve['suction_temp1'].tolist(), 'b--', linewidth='2', drawstyle='steps-post')
 
-        gap = 60  # 09~18 : 120
+        gap = 240  # 09~18 : 120
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])

@@ -188,8 +188,8 @@ class DataCorrection:
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '14:20:00'
-        et = '17:20:00'
+        st = '00:00:00'
+        et = '23:59:00'
 
         # Plotting
         self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
@@ -236,7 +236,7 @@ class DataCorrection:
         avg_temp_list = solve[cd_col_list].mean(axis=1)
         lineavg1, = ax3.plot(tt, avg_temp_list, 'k', linewidth='4', drawstyle='steps-post', label='Inlet Average Temperature')
 
-        df1 = pd.DataFrame({'IndoorHX_inlet_Average_Temperature': avg_temp_list})
+        df1 = pd.DataFrame({'Air_inlet_Average_Temperature': avg_temp_list})
         df1.to_csv("{}/Outdoor_{}_inlet_AvgTemp.csv".format(save, out_unit))
         print(df1)
 
@@ -249,7 +249,7 @@ class DataCorrection:
         avg_temp_list = solve[cd_col_list].mean(axis=1)
         lineavg2, = ax3.plot(tt, avg_temp_list, 'r', linewidth='4', drawstyle='steps-post', label='Outlet Average Temperature')
 
-        df2 = pd.DataFrame({'IndoorHX_outlet_Average_Temperature': avg_temp_list})
+        df2 = pd.DataFrame({'Air_outlet_Average_Temperature': avg_temp_list})
         df2.to_csv("{}/Outdoor_{}_outlet_AvgTemp.csv".format(save, out_unit))
         print(df2)
 
@@ -257,7 +257,7 @@ class DataCorrection:
         ax2.legend(['Air Velocity ({})'.format('$m/s$')], fontsize=18, loc='upper left')
         ax3.legend(handles=[lineavg1, lineavg2], fontsize=18, loc='upper right')
 
-        gap = 60  # 09~18 : 120
+        gap = 240  # 09~18 : 120
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])

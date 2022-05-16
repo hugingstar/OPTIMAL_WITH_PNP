@@ -19,18 +19,26 @@ class ACQUISITION():
                             "eev",
                             "relative_capa_code"]
 
-        self.outdoor_data = ["total_indoor_capa",
-                             "comp1", "comp2",
-                             "comp_current_frequency1", "comp_current_frequency2",
-                             "suction_temp1", "cond_out_temp1",
-                             "discharge_temp1", "discharge_temp2", "discharge_temp3",
-                             "double_tube_temp",
-                             "outdoor_temperature",
-                             "high_pressure", "low_pressure",
-                             "eev1", "eev2", "eev3",
-                             "ct1", "ct2", "ct3",
-                             "value",
-                             "fan_step"]
+        # self.outdoor_data = ["total_indoor_capa",
+        #                      "comp1", "comp2",
+        #                      "comp_current_frequency1", "comp_current_frequency2",
+        #                      "suction_temp1", "cond_out_temp1",
+        #                      "discharge_temp1", "discharge_temp2", "discharge_temp3",
+        #                      "double_tube_temp",
+        #                      "outdoor_temperature",
+        #                      "high_pressure", "low_pressure",
+        #                      "eev1", "eev2", "eev3",
+        #                      "ct1", "ct2", "ct3",
+        #                      "value",
+        #                      "fan_step"]
+
+        self.outdoor_data = ["total_indoor_capa", "comp1", "comp2", "cond_out_temp1", "cond_out_temp2", "suction_temp1",
+                             "suction_temp2","discharge_temp1", "discharge_temp2", "discharge_temp3",
+                             "outdoor_temperature", "high_pressure", "low_pressure", "eev1", "eev2", "eev3",
+                             "eev4", "eev5", "ct1", "ct2", "ct3", "double_tube_temp", "hot_gas_valve1", "hot_gas_valve2",
+                             "outdoor_capacity", "liquid_bypass_valve", "evi_bypass_valve", "comp_current_frequency1",
+                             "comp_current_frequency2", "comp_desired_frequency1",
+                             "comp_desired_frequency2", "main_cooling_valve", "evi_eev", "fan_step", "comp_ipm1", "value"]
 
         # Dummy in outdoor
         # cond_out_temp2, suction_temp2, evi_eev
@@ -55,7 +63,8 @@ class ACQUISITION():
        'evi_bypass_valve', 'comp_current_frequency1',
        'comp_current_frequency2', 'comp_desired_frequency1',
        'comp_desired_frequency2', 'main_cooling_valve', 'evi_eev', 'fan_step',
-       'comp_ipm1']"""
+       'comp_ipm1']
+       """
 
         # 진리관
         # 실외기-실내기
@@ -120,8 +129,8 @@ class ACQUISITION():
 
         # Indoor Unit이 순서대로 반복
         for i in self.bldginfo[out_unit]:
-            sql1 = "SELECT * FROM indoor_{} WHERE updated_time >= '{}-{}-{} {}:00:00' and updated_time <= '{}-{}-{} {}:59:00' AND time(updated_time) BETWEEN '00:00:00' AND '23:59:00'".format(
-                i, self.start_year, self.start_month, self.start_date, '00', self.end_year, self.end_month, self.end_date, 23)
+            sql1 = "SELECT * FROM indoor_{} WHERE updated_time >= '{}-{}-{} {}:00:00' and updated_time <= '{}-{}-{} {}:59:00' AND time(updated_time) BETWEEN '00:00:00' AND '23:59:00'"\
+                .format(i, self.start_year, self.start_month, self.start_date, '00', self.end_year, self.end_month, self.end_date, 23)
             df_org = pd.read_sql(sql1, self.db_conn)
             # print(df_org.columns)
             df1 = df_org[self.indoor_data]
@@ -152,8 +161,11 @@ class ACQUISITION():
         df_org = pd.read_sql(sql, self.db_conn)
         # print(df_org.columns)
         df = df_org[self.outdoor_data]
+
+        #Meta data
         for j in df.columns:
             df.rename(columns={'{}'.format(j): 'Bldg_{}/Outd_{}/{}'.format(self.bldg_name, out_unit, j)}, inplace=True)
+
         df = df.set_index(df_org[self.TIME])
         df.to_csv("{}/{}/{}/Outdoor_{}.csv".format(self.DATA_PATH, self.AnalysisObject, self.folder_name, out_unit))
 
@@ -204,33 +216,33 @@ class ACQUISITION():
 
 
 """Indoor data"""
-start ='2022-01-26'
-end = '2022-01-26'
-AnalysisObject = 'VirtualSensor' # Optimal/VirtualSensor
+start ='2022-03-21'
+end = '2022-03-21'
+AnalysisObject = 'Optimal' # Optimal/VirtualSensor
 
 """진리관"""
-# # Indoor
-# cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
-# for i in [909, 910, 921, 920, 919, 917, 918, 911]:
-#     cooo.get_indoor_with_Fullsentences(out_unit=i)
-# cooo.CLOSE_DATABASE()
-#
-# # Outdoor
-# cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
-# for i in [909, 910, 921, 920, 919, 917, 918, 911]:
-#     cooo.get_outdoor_with_Fullsentences(out_unit=i)
-# cooo.CLOSE_DATABASE()
-
-
-"""디지털 도서관"""
 # Indoor
 cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
-for i in [3065, 3066, 3067, 3069]:
+for i in [909, 910, 921, 920, 919, 917, 918, 911]:
     cooo.get_indoor_with_Fullsentences(out_unit=i)
 cooo.CLOSE_DATABASE()
 
 # Outdoor
 cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
-for i in [3065, 3066, 3067, 3069]:
+for i in [909, 910, 921, 920, 919, 917, 918, 911]:
     cooo.get_outdoor_with_Fullsentences(out_unit=i)
 cooo.CLOSE_DATABASE()
+
+
+"""디지털 도서관"""
+# # Indoor
+# cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
+# for i in [3065, 3066, 3067, 3069]:
+#     cooo.get_indoor_with_Fullsentences(out_unit=i)
+# cooo.CLOSE_DATABASE()
+#
+# # Outdoor
+# cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
+# for i in [3065, 3066, 3067, 3069]:
+#     cooo.get_outdoor_with_Fullsentences(out_unit=i)
+# cooo.CLOSE_DATABASE()

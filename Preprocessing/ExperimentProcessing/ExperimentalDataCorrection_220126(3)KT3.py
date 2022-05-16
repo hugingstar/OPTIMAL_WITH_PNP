@@ -189,8 +189,8 @@ class DataCorrection:
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '11:00:00'
-        et = '14:25:00'
+        st = '00:00:00'
+        et = '23:59:00'
 
         # Plotting
         self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
@@ -234,7 +234,7 @@ class DataCorrection:
         avg_temp_list = solve[cd_col_list].mean(axis=1)
         lineavg1, = ax3.plot(tt, avg_temp_list, 'k', linewidth='4', drawstyle='steps-post', label='Inlet Average Temperature')
 
-        df1 = pd.DataFrame({'IndoorHX_inlet_Average_Temperature': avg_temp_list})
+        df1 = pd.DataFrame({'Air_inlet_Average_Temperature': avg_temp_list})
         df1.to_csv("{}/Outdoor_{}_inlet_AvgTemp.csv".format(save, out_unit))
         print(df1)
 
@@ -242,11 +242,11 @@ class DataCorrection:
         for _ in [65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53]:  # inlet 1~9
             cd_col_list.append('point{}'.format(_))
             # 가장 큰 것 : 19
-            ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'r', alpha=0.2, linewidth='2', drawstyle='steps-post')
+            ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'b', alpha=0.2, linewidth='2', drawstyle='steps-post')
         avg_temp_list = solve[cd_col_list].mean(axis=1)
-        lineavg2, = ax3.plot(tt, avg_temp_list, 'r', linewidth='4', drawstyle='steps-post', label='Outlet Average Temperature')
+        lineavg2, = ax3.plot(tt, avg_temp_list, 'b', linewidth='4', drawstyle='steps-post', label='Outlet Average Temperature')
 
-        df2 = pd.DataFrame({'IndoorHX_outlet_Average_Temperature': avg_temp_list})
+        df2 = pd.DataFrame({'Air_outlet_Average_Temperature': avg_temp_list})
         df2.to_csv("{}/Outdoor_{}_outlet_AvgTemp.csv".format(save, out_unit))
         print(df2)
 

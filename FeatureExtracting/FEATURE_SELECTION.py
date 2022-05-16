@@ -283,11 +283,11 @@ end = '2021-09-30'
 
 """Hyperparameters"""
 time ="updated_time" #시계열 인덱스
-TARGET = "room_temp" #타켓 컬럼"Duration" #"relative_capa_code"
+TARGET = "room_temp" #타켓 컬럼"Duration" #"relative_capa_code"  "room_temp"
 TRAIN_SIZE = 0.7
 N_ESTIMATION = 1000
 GRAD_CLIP = 2.5
-BATCH_SIZE = 500
+BATCH_SIZE = 5000
 LEARNING_RATE = 0.01
 MAX_DEPTH = 10
 MAX_FEATURES = 5

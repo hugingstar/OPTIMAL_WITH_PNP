@@ -42,6 +42,7 @@
   * Update(22.04.28) : Mode Index 수정(Auto : 3.5 사용), 주석 추가
 * VSENSORS_OUTDOORUNIT.py : 실외기 데이터를 사용한 가상센서
   * Update(22.05.12) : 실외기 데이터를 사용한 가상센서 PH, TS 다이어그램 추가
+  * Update(22.05.13) : 실외기 토출구 고기 온도 가상센서 추가
 * REGRESSION.py : 회귀식을 만들기 위한 가중치를 출력하는 모델
   * Update(22.04.26) : 간단한 회귀식을 만들기 위한 모델(Hypothesis 설정시 비선형 가능)
 *VSENSORS_REGPARATUNNING.py : 

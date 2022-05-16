@@ -1299,7 +1299,7 @@ TspValue = 'set_temp'
 # TzValue =  'room_temp'
 ToaValue = 'outdoor_temp'
 
-METHOD = "Seq2seq" #"Seq2seq" ,"Attention", "AutoEncoder"
+METHOD = "AutoEncoder" #"Seq2seq" ,"Attention", "AutoEncoder"
 # 특징중요도 메소드
 IMP_METHOD = "Adaboosting" #"Randomforest","Adaboosting","Gradientboosting"
 

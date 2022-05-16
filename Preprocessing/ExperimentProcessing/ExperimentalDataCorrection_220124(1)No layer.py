@@ -181,23 +181,22 @@ class DataCorrection:
         self.OutIntegData = self.OutIntegData.join(self.IntegOutdoorVolume, how='left')
         self.OutIntegData = self.OutIntegData.join(self.IntegTemp, how='left')
 
-        self.OutIntegData = self.OutIntegData.fillna(0)
+        # self.OutIntegData = self.OutIntegData.fillna(0)
+        print(self.OutIntegData.shape)
         if "Unnamed: 0" in self.OutIntegData:
             self.OutIntegData.drop(columns=['Unnamed: 0'], inplace=True)
         self.OutIntegData.to_csv("{}/OutIntegrationData_{}.csv".format(save, out_unit))
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '11:00:00'
-        et = '14:31:00'
+        st = '00:00:00' #'11:00:00'
+        et = '23:59:00' #'14:31:00'
 
         # Plotting
         self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
 
         # Measurement
         self.PlottingOutdoorMeasurement(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
-
-        #
 
     def PlottingOutdoorMeasurement(self, plt_ST, plt_ET, save, out_unit):
         plt.rcParams["font.family"] = "Times New Roman"
@@ -222,13 +221,13 @@ class DataCorrection:
         ax1.plot(tt, solve['outdoor_volume'].tolist(), 'g-', linewidth='2', drawstyle='steps-post')
         ax2.plot(tt, solve['outdoor_velocity'].tolist(), 'b-', linewidth='2', drawstyle='steps-post')
 
-
+        # Inlet
         cd_col_list = []
-        for _ in [1, 3, 4, 6, 7, 8, 9,
-                  12, 14, 15, 16, 17, 20,
-                  22, 23, 24, 26, 29, 30,
-                  32, 33, 34, 39,
-                  41, 44, 45, 46, 47, 49]:
+        for _ in [3, 8, 9, 12]: # 1, 3, 4, 6, 7, 8, 9,
+                  #12, 14, 15, 16, 17, 20,
+                  #22, 23, 24, 26, 29, 30,
+                  #32, 33, 34, 39,
+                  #41, 44, 45, 46, 47, 49
 
             cd_col_list.append('point{}'.format(_))
             # 가장 큰 것 : 19
@@ -236,19 +235,20 @@ class DataCorrection:
         avg_temp_list = solve[cd_col_list].mean(axis=1)
         lineavg1, = ax3.plot(tt, avg_temp_list, 'k', linewidth='4', drawstyle='steps-post', label='Inlet Average Temperature')
 
-        df1 = pd.DataFrame({'IndoorHX_inlet_Average_Temperature': avg_temp_list})
+        df1 = pd.DataFrame({'Air_inlet_Average_Temperature': avg_temp_list})
         df1.to_csv("{}/Outdoor_{}_inlet_AvgTemp.csv".format(save, out_unit))
         print(df1)
 
+        # Outlet
         cd_col_list = []
-        for _ in [65, 64, 63, 61, 60, 59, 58, 57, 56, 55, 54, 53]:  # inlet 1~9
+        for _ in [65, 63, 61, 60]: #64, 63, 61, 60, 59, 58, 57, 56, 55, 54, 53]:
             cd_col_list.append('point{}'.format(_))
             # 가장 큰 것 : 19
-            ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'r', alpha=0.2, linewidth='2', drawstyle='steps-post')
+            ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'b', alpha=0.2, linewidth='2', drawstyle='steps-post')
         avg_temp_list = solve[cd_col_list].mean(axis=1)
-        lineavg2, = ax3.plot(tt, avg_temp_list, 'r', linewidth='4', drawstyle='steps-post', label='Outlet Average Temperature')
+        lineavg2, = ax3.plot(tt, avg_temp_list, 'b', linewidth='4', drawstyle='steps-post', label='Outlet Average Temperature')
 
-        df2 = pd.DataFrame({'IndoorHX_outlet_Average_Temperature': avg_temp_list})
+        df2 = pd.DataFrame({'Air_outlet_Average_Temperature': avg_temp_list})
         df2.to_csv("{}/Outdoor_{}_outlet_AvgTemp.csv".format(save, out_unit))
         print(df2)
 
@@ -256,7 +256,7 @@ class DataCorrection:
         ax2.legend(['Air Velocity ({})'.format('$m/s$')], fontsize=18, loc='upper left')
         ax3.legend(handles=[lineavg1, lineavg2], fontsize=18, loc='upper left')
 
-        gap = 60  # 09~18 : 120
+        gap = 240  # 09~18 : 120
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
@@ -296,11 +296,10 @@ class DataCorrection:
         plt.show()
         plt.clf()
 
-
     def PlottingOutdoorSystem(self, plt_ST, plt_ET, save, out_unit):
         plt.rcParams["font.family"] = "Times New Roman"
         # 측정을 하지 않은 곳은 다 0으로 입력하였다.
-        solve = self._outunitData.fillna(0)
+        solve = self.OutIntegData #.fillna(0)
         solve = solve[solve.index >= plt_ST]
         solve = solve[solve.index < plt_ET]
 
@@ -311,17 +310,6 @@ class DataCorrection:
             tt.append(k)
 
         fig = plt.figure(figsize=(25, 40))
-        # ax1 = fig.add_subplot(5, 1, 1)
-        # ax2 = fig.add_subplot(5, 1, 2)
-        # ax3 = fig.add_subplot(5, 1, 3)
-        # ax4 = fig.add_subplot(5, 1, 4)
-        # ax5 = fig.add_subplot(5, 1, 5)
-        # ax6 = ax1.twinx()
-        # ax7 = ax2.twinx()
-        # ax8 = ax3.twinx()
-        # # ax9 = ax4.twinx()
-        # # ax10 = ax5.twinx()
-
         ax1 = fig.add_subplot(8, 1, 1)
         ax2 = fig.add_subplot(8, 1, 2)
         ax3 = fig.add_subplot(8, 1, 3)
@@ -347,7 +335,7 @@ class DataCorrection:
         ax8.plot(tt, solve['discharge_temp2'].tolist(), 'g-', linewidth='2', drawstyle='steps-post', alpha=0.8)
         ax8.plot(tt, solve['suction_temp1'].tolist(), 'b--', linewidth='2', drawstyle='steps-post')
 
-        gap = 60  # 09~18 : 120
+        gap = 240  # 09~18 : 120
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
@@ -434,7 +422,6 @@ class DataCorrection:
         plt.savefig("{}/OutdoorSystem_Outdoor_{}.png".format(save, out_unit))
         # plt.show()
         plt.clf()
-
 
     def create_folder(self, directory):
         """
