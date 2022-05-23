@@ -18,10 +18,32 @@ class DEEPMODEL():
     def __init__(self, time, LEARNING_RATE, LAMBDA_L2_REG, INPUT_SEQ_LEN, OUTPUT_SEQ_LEN, BATCH_SIZE,
                  NUM_STACK_LAYERS, HIDDEN_DIM, GRADIENT_CLIPPING, KEEP_RATE, TOTAL_ITERATION,
                  DROPOUT, LAYERS, PERCENTAGE, FEED_PREVIOUS, start, end, test_start_time):
+        """
+        이 클래스는 딥러닝 모델에 입력될 특징들을 지도학습으로 특징중요도 기준으로 선정하여 입력해 결과를 뽑아낸다.
+
+        :param time:
+        :param LEARNING_RATE:
+        :param LAMBDA_L2_REG:
+        :param INPUT_SEQ_LEN:
+        :param OUTPUT_SEQ_LEN:
+        :param BATCH_SIZE:
+        :param NUM_STACK_LAYERS:
+        :param HIDDEN_DIM:
+        :param GRADIENT_CLIPPING:
+        :param KEEP_RATE:
+        :param TOTAL_ITERATION:
+        :param DROPOUT:
+        :param LAYERS:
+        :param PERCENTAGE:
+        :param FEED_PREVIOUS:
+        :param start:
+        :param end:
+        :param test_start_time:
+        """
 
         "파일을 호출할 경로"
-        self.DATA_PATH = "D:/OPTIMAL/Data"
-        self.SAVE_PATH = "D:/OPTIMAL/Results"
+        self.DATA_PATH = "/Data"
+        self.SAVE_PATH = "/Results"
         self.TIME = time
 
         # 진리관

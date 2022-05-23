@@ -189,8 +189,8 @@ class DataCorrection:
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '00:00:00'
-        et = '23:59:00'
+        st = '11:10:00'
+        et = '14:10:00'
 
         # Plotting
         self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
@@ -203,7 +203,7 @@ class DataCorrection:
         plt.rcParams["font.family"] = "Times New Roman"
         solve = self.OutIntegData.fillna(0)
         solve = solve[solve.index >= plt_ST]
-        solve = solve[solve.index < plt_ET]
+        solve = solve[solve.index <= plt_ET]
 
         tt0 = solve.index.tolist()
         tt = []
@@ -224,10 +224,11 @@ class DataCorrection:
 
 
         cd_col_list = []
-        for _ in [6, 7, 8, 9, 11, 14, 15, 16, 17, 18, 20,
-                  22, 23, 24, 25, 26, 27, 29, 30,
-                  32, 33, 34, 36, 37, 39,
-                  41, 42, 43, 44, 45, 46, 47, 51, 52]: #19
+        for _ in [65, 62, 61, 60, 53]:
+            #6, 7, 8, 9, 11, 14, 15, 16, 17, 18, 20,
+             #     22, 23, 24, 25, 26, 27, 29, 30,
+              #    32, 33, 34, 36, 37, 39,
+               #   41, 42, 43, 44, 45, 46, 47, 51, 52]: #19
             cd_col_list.append('point{}'.format(_))
             # 가장 큰 것 : 19
             ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'k', alpha=0.2, linewidth='2', drawstyle='steps-post')
@@ -239,7 +240,7 @@ class DataCorrection:
         print(df1)
 
         cd_col_list = []
-        for _ in [65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53]:  # inlet 1~9
+        for _ in [22, 25, 36, 45]: #64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53]:
             cd_col_list.append('point{}'.format(_))
             # 가장 큰 것 : 19
             ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'b', alpha=0.2, linewidth='2', drawstyle='steps-post')
@@ -300,7 +301,7 @@ class DataCorrection:
         # 측정을 하지 않은 곳은 다 0으로 입력하였다.
         solve = self.OutIntegData.fillna(0)
         solve = solve[solve.index >= plt_ST]
-        solve = solve[solve.index < plt_ET]
+        solve = solve[solve.index <= plt_ET]
         print(solve)
 
         tt0 = solve.index.tolist()
@@ -346,7 +347,7 @@ class DataCorrection:
         ax8.plot(tt, solve['discharge_temp2'].tolist(), 'g-', linewidth='2', drawstyle='steps-post', alpha=0.8)
         ax8.plot(tt, solve['suction_temp1'].tolist(), 'b--', linewidth='2', drawstyle='steps-post')
 
-        gap = 60  # 09~18 : 120
+        gap = 120  # 09~18 : 120
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])

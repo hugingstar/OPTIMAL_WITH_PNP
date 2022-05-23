@@ -188,8 +188,8 @@ class DataCorrection:
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '00:00:00'
-        et = '23:59:00'
+        st = '14:20:00'
+        et = '17:20:00'
 
         # Plotting
         self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
@@ -197,13 +197,12 @@ class DataCorrection:
         # Measurement
         self.PlottingOutdoorMeasurement(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
 
-        #
 
     def PlottingOutdoorMeasurement(self, plt_ST, plt_ET, save, out_unit):
         plt.rcParams["font.family"] = "Times New Roman"
         solve = self.OutIntegData.fillna(0)
         solve = solve[solve.index >= plt_ST]
-        solve = solve[solve.index < plt_ET]
+        solve = solve[solve.index <= plt_ET]
 
         tt0 = solve.index.tolist()
         tt = []
@@ -224,12 +223,13 @@ class DataCorrection:
 
         # Inlet
         cd_col_list = []
-        for _ in [6, 7, 8, 9, 10,
-                  11, 12, 14, 15, 16, 17, 18, 20,
-                  22, 23, 25, 26, 27, 28, 29, 30,
-                  31, 32, 33, 34, 36, 37, 39,
-                  41, 42, 43, 44, 45, 46, 47, 48, 49,
-                  50, 51, 52]: # 13
+        for _ in [65, 63, 56, 53 ]:
+            #6, 7, 8, 9, 10,
+             ##     11, 12, 14, 15, 16, 17, 18, 20,
+               #   22, 23, 25, 26, 27, 28, 29, 30,
+                #  31, 32, 33, 34, 36, 37, 39,
+                 # 41, 42, 43, 44, 45, 46, 47, 48, 49,
+                  #50, 51, 52]: # 13
             cd_col_list.append('point{}'.format(_))
             # 가장 큰 것 : 19
             ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'k', alpha=0.2, linewidth='2', drawstyle='steps-post')
@@ -242,12 +242,12 @@ class DataCorrection:
 
         # Outlet
         cd_col_list = []
-        for _ in [65, 64, 63, 61, 60, 59, 58, 57, 56, 55, 54, 53]:
+        for _ in [25, 30, 42, 47]: #64, 63, 61, 60, 59, 58, 57, 56, 55, 54, 53]:
             cd_col_list.append('point{}'.format(_))
             # 가장 큰 것 : 19
-            ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'r', alpha=0.2, linewidth='2', drawstyle='steps-post')
+            ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'b', alpha=0.2, linewidth='2', drawstyle='steps-post')
         avg_temp_list = solve[cd_col_list].mean(axis=1)
-        lineavg2, = ax3.plot(tt, avg_temp_list, 'r', linewidth='4', drawstyle='steps-post', label='Outlet Average Temperature')
+        lineavg2, = ax3.plot(tt, avg_temp_list, 'b', linewidth='4', drawstyle='steps-post', label='Outlet Average Temperature')
 
         df2 = pd.DataFrame({'Air_outlet_Average_Temperature': avg_temp_list})
         df2.to_csv("{}/Outdoor_{}_outlet_AvgTemp.csv".format(save, out_unit))
@@ -257,7 +257,7 @@ class DataCorrection:
         ax2.legend(['Air Velocity ({})'.format('$m/s$')], fontsize=18, loc='upper left')
         ax3.legend(handles=[lineavg1, lineavg2], fontsize=18, loc='upper right')
 
-        gap = 240  # 09~18 : 120
+        gap = 60  # 09~18 : 120
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])

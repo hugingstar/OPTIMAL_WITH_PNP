@@ -9,7 +9,6 @@ import os
 import numpy as np
 
 
-
 class ENSEMBLE():
     def __init__(self, time, TRAIN_SIZE, N_ESTIMATION, GRAD_CLIP, BATCH_SIZE, LEARNING_RATE, PREDMIN,
                  MAX_DEPTH, MAX_FEATURES, MAX_LEAF_NODES, N_JOBS, RANDOM_STATE, start, end):
@@ -94,7 +93,7 @@ class ENSEMBLE():
             self.data = pd.concat([self._outdata, self._indata], axis=1)
 
             """문자열로 되어 있는 정보는 숫자로 대체"""
-            self.data = self.data.replace({"High": 3, "Mid" : 2, "Low" : 1, "Auto" : 4})
+            self.data = self.data.replace({"High": 3, "Mid" : 2, "Low" : 1, "Auto" : 2.5})
 
             # 관련 컬럼 불러 내기
             self.onoffsignal = list(pd.Series(list(self.data.columns))[
@@ -103,11 +102,12 @@ class ENSEMBLE():
                                         pd.Series(list(self.data.columns)).str.contains(pat=meterValue, case=False)])[0]
             self.set_temp = list(pd.Series(list(self.data.columns))[
                                         pd.Series(list(self.data.columns)).str.contains(pat=TspValue, case=False)])[0]
-            # self.zone_temp = list(pd.Series(list(self.data.columns))[
-            #                             pd.Series(list(self.data.columns)).str.contains(pat=TzValue, case=False)])[0]
+            self.zone_temp = list(pd.Series(list(self.data.columns))[
+                                        pd.Series(list(self.data.columns)).str.contains(pat=TzValue, case=False)])[0]
             self.outdoor_temp =list(pd.Series(list(self.data.columns))[
                                         pd.Series(list(self.data.columns)).str.contains(pat=ToaValue, case=False)])[0]
 
+            print(self.data)
 
             # 작동시간 값을 입력
             num = 0
@@ -278,8 +278,8 @@ class ENSEMBLE():
         except OSError:
             print('Error: creating directory. ' + directory)
 
-start = '2021-07-01'
-end = '2021-09-30'
+start = '2021-01-01'
+end = '2021-03-31'
 
 """Hyperparameters"""
 time ="updated_time" #시계열 인덱스
@@ -288,7 +288,7 @@ TRAIN_SIZE = 0.7
 N_ESTIMATION = 1000
 GRAD_CLIP = 2.5
 BATCH_SIZE = 5000
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.001
 MAX_DEPTH = 10
 MAX_FEATURES = 5
 MAX_LEAF_NODES = 20
@@ -300,7 +300,7 @@ meterValue = 'value' # 미터기 값
 TspValue = 'set_temp' # 설정 온도
 TzValue =  'room_temp' # 방 온도
 ToaValue = 'outdoor_temp' # 외기 온도도
-PREDMIN = [10]
+PREDMIN = [60]
 METHOD = "Randomforest" #Randomforest, Adaboosting, Gradientboosting, Decisiontree
 
 for j in PREDMIN:

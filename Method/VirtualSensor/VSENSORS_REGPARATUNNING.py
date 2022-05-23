@@ -17,8 +17,8 @@ class REGRESSION_SENSORS():
         스케일러 작업 필요
         """
         "파일을 호출할 경로"
-        self.DATA_PATH = "D:/OPTIMAL/Data/ParameterTunning"
-        self.SAVE_PATH = "D:/OPTIMAL/Results"
+        self.DATA_PATH = "/Data/ParameterTunning"
+        self.SAVE_PATH = "/Results"
         self.TIME = TIME
         self.COMP_MODEL_NAME = COMP_MODEL_NAME
 

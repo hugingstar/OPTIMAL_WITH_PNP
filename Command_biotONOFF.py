@@ -6,8 +6,6 @@ import pandas as pd
 import requests
 import pause
 
-config_path = '/Config/identification.json'
-
 class biotOptimalControl:
     def __init__(self, config_path, **kwargs):
         self.config = JsonConfig(config_path)
@@ -50,13 +48,13 @@ class biotOptimalControl:
             }
             print(login.status_code)
 
-    def OPT_Signal_ON(self, opt_target, zone):
+    def OPT_Signal_ON(self, opt_target, ind_unit):
         now = datetime.datetime.now().strftime('%y-%m-%d %H:%M')
         # print(type(now), now)
         opt_target = opt_target
         # print(type(opt_target), opt_target)
         self.control_url = "https://168.131.141.115/dms/devices/multiControl/"
-        target_zone = [self.ctrl_room['room_{}'.format(zone)]]
+        target_zone = [self.ctrl_room['room_{}'.format(ind_unit)]]
         command_message = {"dms_devices_ids": target_zone,
                            "control": {"operations":[{"id" : "AirConditioner.Indoor.General", "power" : "On"}]}}
         """Until Optimal start time"""
@@ -69,13 +67,13 @@ class biotOptimalControl:
                              verify=False)
         print("room: {}, on_status_code: {}".format(target_zone, res_on.status_code))
 
-    def OPT_Signal_OFF(self, opt_target, zone):
+    def OPT_Signal_OFF(self, opt_target, ind_unit):
         now = datetime.datetime.now().strftime('%y-%m-%d %H:%M')
         # print(type(now), now)
         opt_target = opt_target
         # print(type(opt_target), opt_target)
         self.control_url = "https://168.131.141.115/dms/devices/multiControl/"
-        target_zone = [self.ctrl_room['room_{}'.format(zone)]]
+        target_zone = [self.ctrl_room['room_{}'.format(ind_unit)]]
         command_message = {"dms_devices_ids": target_zone,
                            "control": {"operations":[{"id" : "AirConditioner.Indoor.General", "power" :"Off"}]}}
         """Until Optimal start time"""
@@ -89,13 +87,14 @@ class biotOptimalControl:
         print("room: {}, on_status_code: {}".format(target_zone, res_on.status_code))
 
 """Login at biot for optimal control"""
+config_path = 'D:/OPTIMAL/Config/identification.json' #'/Config/identification.json'
 biot = biotOptimalControl(config_path=config_path)
 
 """opt_target must  be later than datetime.now"""
-opt_on_target = datetime.datetime(2021, 5, 14, 2, 54)
-print("Optimal Start (ON) : {}".format(opt_on_target))
-biot.OPT_Signal_ON(opt_target=opt_on_target, zone='961')
+# opt_on_target = datetime.datetime(2022, 5, 23, 11, 8)
+# print("Optimal Start (ON) : {}".format(opt_on_target))
+# biot.OPT_Signal_ON(opt_target=opt_on_target, ind_unit='961')
 
-opt_off_target = datetime.datetime(2021, 5, 14, 2, 55)
+opt_off_target = datetime.datetime(2022, 5, 23, 11, 9)
 print("Optimal Stop (OFF) : {}".format(opt_off_target))
-biot.OPT_Signal_OFF(opt_target=opt_off_target, zone='961')
+biot.OPT_Signal_OFF(opt_target=opt_off_target, ind_unit='961')

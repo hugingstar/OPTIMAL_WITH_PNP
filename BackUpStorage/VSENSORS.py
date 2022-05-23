@@ -7,8 +7,8 @@ import numpy as np
 class COMPRESSORMAPMODEL():
     def __init__(self, COMP_MODEL_NAME, TIME, start, end):
         "파일을 호출할 경로"
-        self.DATA_PATH = "D:/OPTIMAL/Data/VirtualSensor"
-        self.SAVE_PATH = "D:/OPTIMAL/Results"
+        self.DATA_PATH = "/Data/VirtualSensor"
+        self.SAVE_PATH = "/Results"
         self.TIME = TIME
 
         # 진리관
