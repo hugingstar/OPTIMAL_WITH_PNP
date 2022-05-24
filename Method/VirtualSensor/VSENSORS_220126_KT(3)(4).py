@@ -11,8 +11,8 @@ import statistics
 class COMPRESSORMAPMODEL():
     def __init__(self, COMP_MODEL_NAME, TIME, start, end):
         "파일을 호출할 경로"
-        self.DATA_PATH = "/Data/VirtualSensor"
-        self.SAVE_PATH = "/Results"
+        self.DATA_PATH = "D:/Optimal/Data/VirtualSensor"
+        self.SAVE_PATH = "D:/Optimal/Results"
         self.TIME = TIME
 
         # 진리관
@@ -179,6 +179,7 @@ class COMPRESSORMAPMODEL():
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
         st = '11:50:00'#'11:50:00' 14:50:00
         et = '14:20:00'#'14:20:00' 17:50:00
+        self.gap = 60
 
         solve = self._outdata
         solve = solve[solve.index >= self.folder_name + ' ' + st]
@@ -193,6 +194,7 @@ class COMPRESSORMAPMODEL():
         self.TemperatureEntropyDiagram(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
 
         """biot Data with Virtual Power Sensor"""
+        self.PlottingSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
         self.PlottingVirtualPowerSensor(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
         self.PlottingVirtualPowerSensorAccuracy(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
         self.PlottingPerformanceSensor(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
@@ -459,6 +461,98 @@ class COMPRESSORMAPMODEL():
         print("MBE : {} % ".format(round(error, 2)))
         return round(error, 2)
 
+    def PlottingSystem(self, plt_ST, plt_ET, save, out_unit):
+        plt.rcParams["font.family"] = "Times New Roman"
+        solve = self._outdata.fillna(0)
+        solve.index = pd.to_datetime(solve.index)
+        solve = solve.resample(rule='5min').mean()
+        solve = solve[solve.index >= plt_ST]
+        solve = solve[solve.index <= plt_ET]
+
+        tt0 = solve.index.tolist()
+        tt = []
+        for i in range(len(tt0)):
+            k = str(tt0[i])[8:16]
+            tt.append(k)
+
+        fig = plt.figure(figsize=(25, 30))
+        ax1 = fig.add_subplot(5, 1, 1)
+        ax2 = fig.add_subplot(5, 1, 2)
+        ax3 = fig.add_subplot(5, 1, 3)
+        ax4 = fig.add_subplot(5, 1, 4)
+        ax5 = fig.add_subplot(5, 1, 5)
+
+        ax1.plot(tt, solve[self.DischargePressure].tolist(), 'r-', linewidth='2', alpha=0.7, drawstyle='steps-post')
+        ax1.plot(tt, solve[self.SuctionPressure].tolist(), 'b--', linewidth='2', alpha=0.7, drawstyle='steps-post')
+        ax2.plot(tt, solve[self.DischargeTemp[0]].tolist(), 'r-', linewidth='2', alpha=0.7, drawstyle='steps-post')
+        ax2.plot(tt, solve[self.SuctionTemp[0]].tolist(), 'b--', linewidth='2', alpha=0.7, drawstyle='steps-post')
+        ax3.plot(tt, solve[self.freq[0]].tolist(), 'r-', linewidth='2', alpha=0.7, drawstyle='steps-post', )
+        ax3.plot(tt, solve[self.freq[1]].tolist(), 'b--', linewidth='2', alpha=0.7, drawstyle='steps-post')
+        ax4.plot(tt, solve[self.CompressorSignal[0]].tolist(), 'r-', linewidth='2', alpha=0.7, drawstyle='steps-post')
+        ax4.plot(tt, solve[self.CompressorSignal[1]].tolist(), 'b--', linewidth='2', alpha=0.7, drawstyle='steps-post')
+        ax5.plot(tt, solve[self.RealPower].tolist(), 'k-', linewidth='2', alpha=0.7, drawstyle='steps-post')
+
+        gap = self.gap  # 09~18 : 120 240
+        ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax4.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax5.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+
+        ax1.tick_params(axis="x", labelsize=26)
+        ax2.tick_params(axis="x", labelsize=26)
+        ax3.tick_params(axis="x", labelsize=26)
+        ax4.tick_params(axis="x", labelsize=26)
+        ax5.tick_params(axis="x", labelsize=26)
+
+        ax1.tick_params(axis="y", labelsize=26)
+        ax2.tick_params(axis="y", labelsize=26)
+        ax3.tick_params(axis="y", labelsize=26)
+        ax4.tick_params(axis="y", labelsize=26)
+        ax5.tick_params(axis="y", labelsize=26)
+
+        ax1.set_ylabel('Pressure', fontsize=28)
+        ax2.set_ylabel('Temperature', fontsize=28)
+        ax3.set_ylabel('Frequency', fontsize=28)
+        ax4.set_ylabel('Compressor\nSignal', fontsize=28)
+        ax5.set_ylabel('Power', fontsize=28)
+
+        ax1.set_yticks([0, 10, 20, 30, 40, 50, 60])
+        ax2.set_yticks([0, 25, 50, 75, 100])
+        ax3.set_yticks([0, 25, 50, 75, 100])
+        ax4.set_yticks([0, 1])
+
+        ax1.set_ylim([0, max(solve[self.DischargePressure].tolist()) * 1.5])
+        ax2.set_ylim([-10, max(solve[self.DischargeTemp[0]].tolist()) * 1.5])
+        ax3.set_ylim([0, 100])
+        ax4.set_ylim([0, 3])
+
+        ax1.legend(['High Pressure($bar$)', 'Low Pressure($bar$)'], fontsize=22, loc='upper right', ncol=2)
+        ax2.legend(['Discharge Temperature($^{\circ}C$)', 'Suction Temperature($^{\circ}C$)'], fontsize=18,
+                   loc='upper right', ncol=2)
+        ax3.legend(['Frequency1($Hz$)', 'Frequency2($Hz$)'], fontsize=22, ncol=2)
+        ax4.legend(['Compressor Signal($Hz$)', 'Compressor Signal($Hz$)'], fontsize=22, ncol=2)
+        ax5.legend(['Real Power($kW$)'], fontsize=22, ncol=2, loc='upper right')
+
+        ax1.autoscale(enable=True, axis='x', tight=True)
+        ax2.autoscale(enable=True, axis='x', tight=True)
+        ax3.autoscale(enable=True, axis='x', tight=True)
+        ax4.autoscale(enable=True, axis='x', tight=True)
+        ax5.autoscale(enable=True, axis='x', tight=True)
+        # ax6.autoscale(enable=True, axis='x', tight=True)
+
+        ax1.grid()
+        ax2.grid()
+        ax3.grid()
+        ax4.grid()
+        ax5.grid()
+        # ax6.grid()
+
+        plt.tight_layout()
+        plt.savefig("{}/OutdoorUnit_Outdoor_{}.png".format(save, out_unit))
+        # plt.show()
+        plt.clf()
+
     def PlottingUASensor(self, plt_ST, plt_ET, save, out_unit):
         plt.rcParams["font.family"] = "Times New Roman"
         solve = self._outdata.fillna(0)
@@ -480,7 +574,7 @@ class COMPRESSORMAPMODEL():
         ax1.plot(tt, solve[self.VirtualUA].tolist(), 'b-', linewidth='2', alpha=0.9, drawstyle='steps-post')
         ax2.plot(tt, solve[self.FanSteps].tolist(), 'g-', linewidth='2', alpha=0.9, drawstyle='steps-post')
 
-        gap = 12  # 09~18 : 120 240
+        gap = self.gap  # 09~18 : 120 240
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
 
@@ -514,7 +608,6 @@ class COMPRESSORMAPMODEL():
         # plt.show()
         plt.clf()
 
-
     def PlottingPerformanceSensor(self, plt_ST, plt_ET, save, out_unit):
         plt.rcParams["font.family"] = "Times New Roman"
         solve = self._outdata.fillna(0)
@@ -547,7 +640,7 @@ class COMPRESSORMAPMODEL():
         ax6.plot(tt, solve[self.RealMdot].tolist(), 'k-', linewidth='2', alpha=0.9, drawstyle='steps-post')
         ax6.plot(tt, solve[self.VirtualMdotPred].tolist(), 'r-', linewidth='2', alpha=0.9, drawstyle='steps-post')
 
-        gap = 12  # 09~18 : 120 240
+        gap = self.gap  # 09~18 : 120 240
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
@@ -685,94 +778,32 @@ class COMPRESSORMAPMODEL():
             k = str(tt0[i])[8:16]
             tt.append(k)
 
-        fig = plt.figure(figsize=(25, 30))
-        ax1 = fig.add_subplot(6, 1, 1)
-        ax2 = fig.add_subplot(6, 1, 2)
-        ax3 = fig.add_subplot(6, 1, 3)
-        ax4 = fig.add_subplot(6, 1, 4)
-        ax5 = fig.add_subplot(6, 1, 5)
-        ax6 = fig.add_subplot(6, 1, 6)
+        fig = plt.figure(figsize=(25, 6))
+        ax1 = fig.add_subplot(1, 1, 1)
 
-        ax1.plot(tt, solve[self.DischargePressure].tolist(), 'r-', linewidth='2', alpha=0.7, drawstyle='steps-post')
-        ax1.plot(tt, solve[self.SuctionPressure].tolist(), 'b--', linewidth='2',alpha=0.7, drawstyle='steps-post')
-        ax2.plot(tt, solve[self.DischargeTemp[0]].tolist(), 'r-', linewidth='2', alpha=0.7, drawstyle='steps-post')
-        ax2.plot(tt, solve[self.SuctionTemp[0]].tolist(), 'b--', linewidth='2', alpha=0.7, drawstyle='steps-post')
-        ax3.plot(tt, solve[self.MapDensity].tolist(), 'b-', linewidth='2', alpha=0.7, drawstyle='steps-post')
-        ax4.plot(tt, solve[self.freq[0]].tolist(), 'r-', linewidth='2', alpha=0.7, drawstyle='steps-post',)
-        ax4.plot(tt, solve[self.freq[1]].tolist(), 'b--', linewidth='2', alpha=0.7, drawstyle='steps-post')
-        ax5.plot(tt, solve[self.CompressorSignal[0]].tolist(), 'r-', linewidth='2', alpha=0.7, drawstyle='steps-post')
-        ax5.plot(tt, solve[self.CompressorSignal[1]].tolist(), 'b--', linewidth='2', alpha=0.7, drawstyle='steps-post')
-        ax6.plot(tt, solve[self.RealPower].tolist(), 'k-', linewidth='2', alpha=0.7, drawstyle='steps-post')
-        ax6.plot(tt, solve[self.VirtualPower].tolist(), 'r-', linewidth='2', alpha=0.9, drawstyle='steps-post')
+        ax1.plot(tt, solve[self.RealPower].tolist(), 'k-', linewidth='2', alpha=0.7, drawstyle='steps-post')
+        ax1.plot(tt, solve[self.VirtualPower].tolist(), 'r-', linewidth='2', alpha=0.9, drawstyle='steps-post')
 
-        gap = 12  # 09~18 : 120 240
+        gap = self.gap  # 09~18 : 120 240
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
-        ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
-        ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
-        ax4.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
-        ax5.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
-        ax6.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
 
         ax1.tick_params(axis="x", labelsize=26)
-        ax2.tick_params(axis="x", labelsize=26)
-        ax3.tick_params(axis="x", labelsize=26)
-        ax4.tick_params(axis="x", labelsize=26)
-        ax5.tick_params(axis="x", labelsize=26)
-        ax6.tick_params(axis="x", labelsize=26)
 
         ax1.tick_params(axis="y", labelsize=26)
-        ax2.tick_params(axis="y", labelsize=26)
-        ax3.tick_params(axis="y", labelsize=26)
-        ax4.tick_params(axis="y", labelsize=26)
-        ax5.tick_params(axis="y", labelsize=26)
-        ax6.tick_params(axis="y", labelsize=26)
 
-        ax1.set_ylabel('Pressure', fontsize=28)
-        ax2.set_ylabel('Temperature', fontsize=28)
-        ax3.set_ylabel('Density', fontsize=28)
-        ax4.set_ylabel('Frequency', fontsize=28)
-        ax5.set_ylabel('Compressor\nSignal', fontsize=28)
-        ax6.set_ylabel('Power', fontsize=28)
+        ax1.set_ylabel('Power', fontsize=28)
 
-        ax6.set_xlabel('Time', fontsize=28)
+        ax1.set_yticks([0, 20, 40, 60])
 
-        ax1.set_yticks([0, 10, 20, 30, 40, 50, 60])
-        ax2.set_yticks([0, 25, 50, 75, 100])
-        # ax3.set_yticks([0, 1, 2, 3, 4, 5])
-        ax4.set_yticks([0, 25, 50, 75, 100])
-        ax5.set_yticks([0, 1])
-        ax6.set_yticks([0, 20, 40, 60])
+        ax1.set_ylim([0, max(solve[self.RealPower].tolist()) * 2])
 
-        ax1.set_ylim([0, max(solve[self.DischargePressure].tolist()) * 1.5])
-        ax2.set_ylim([-10, max(solve[self.DischargeTemp[0]].tolist()) * 1.5])
-        ax3.set_ylim([0, max(solve[self.MapDensity].tolist()) * 1.5])
-        ax4.set_ylim([0, 100])
-        ax5.set_ylim([0, 3])
-        ax6.set_ylim([0, max(solve[self.RealPower].tolist()) * 2])
-
-        ax1.legend(['High Pressure($bar$)', 'Low Pressure($bar$)'], fontsize=22, loc='upper right', ncol=2)
-        ax2.legend(['Discharge Temperature($^{\circ}C$)', 'Suction Temperature($^{\circ}C$)'], fontsize=22, loc='upper right', ncol=2)
-        ax3.legend(['Density($kg/m^{3}$)'], fontsize=22)
-        ax4.legend(['Frequency1($Hz$)', 'Frequency2($Hz$)'], fontsize=22, ncol=2)
-        ax5.legend(['Compressor Signal($Hz$)', 'Compressor Signal($Hz$)'], fontsize=22, ncol=2)
-        ax6.legend(['Real Power($kW$)', 'Virtual Power($kW$)'.format()], fontsize=22,  ncol=2, loc='upper right')
+        ax1.legend(['Real Power($kW$)', 'Virtual Power($kW$)'.format()], fontsize=22,  ncol=2, loc='upper right')
 
         ax1.autoscale(enable=True, axis='x', tight=True)
-        ax2.autoscale(enable=True, axis='x', tight=True)
-        ax3.autoscale(enable=True, axis='x', tight=True)
-        ax4.autoscale(enable=True, axis='x', tight=True)
-        ax5.autoscale(enable=True, axis='x', tight=True)
-        ax6.autoscale(enable=True, axis='x', tight=True)
 
         ax1.grid()
-        ax2.grid()
-        ax3.grid()
-        ax4.grid()
-        ax5.grid()
-        ax6.grid()
 
         plt.tight_layout()
-
         plt.savefig("{}/VirtualPowerSensor_Outdoor_{}.png".format(save, out_unit))
         # plt.show()
         plt.clf()

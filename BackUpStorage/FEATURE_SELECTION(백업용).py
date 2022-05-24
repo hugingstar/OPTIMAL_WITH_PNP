@@ -13,8 +13,8 @@ class ENSEMBLE():
     def __init__(self, time, TRAIN_SIZE, N_ESTIMATION, GRAD_CLIP, BATCH_SIZE, LEARNING_RATE, PREDMIN,
                  MAX_DEPTH, MAX_FEATURES, MAX_LEAF_NODES, N_JOBS, RANDOM_STATE, start, end):
 
-        self.DATA_PATH = "D:/OPTIMAL/Data"
-        self.SAVE_PATH = "D:/OPTIMAL/Results"
+        self.DATA_PATH = "/Data"
+        self.SAVE_PATH = "/Results"
         self.TIME = time
 
         # 진리관
@@ -186,7 +186,6 @@ class ENSEMBLE():
             self.data.to_csv("{}/After_Outdoor_{}_Indoor_{}.csv".format(save, out_unit, i)) # 조건 적용 후
             print(out_unit, i, self.data.shape)
 
-
             # 타겟을 제외한 나머지는 독립변수
             self.features = list(self.data.columns.difference([self.target]))
 
@@ -242,11 +241,11 @@ class ENSEMBLE():
             except ValueError as ve:
                 print("[Value Error] {}".format(ve))
                 # 에러났을 경우에는 초기화해준다.
-                acc = pd.DataFrame(columns=['Train_accuracy','Test_accuracy'])
+                acc = pd.DataFrame(columns=['Train_accuracy', 'Test_accuracy'])
                 trA_ = float(0)
                 tesA_ = float(0)
-                acc['Train_accuracy'] = [trA_]
-                acc['Test_accuracy'] = [tesA_]
+                acc['Train_accuracy'] = [0]
+                acc['Test_accuracy'] = [0]
                 acc.to_csv("{}/Acc_Outdoor_{}_Indoor_{}.csv".format(save_rdf, out_unit, i))
                 self.imp_list = np.multiply(self.imp_list, 0)
 
