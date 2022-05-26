@@ -51,7 +51,7 @@ class COMPRESSORMAPMODEL():
             "GB066":
                 {"Mdot_rated": [1.91778583E+0, 3.28857174E+0, 1.84065620E-1, 7.14011551E-5, 2.10278731E+1,
                                 -3.92042237E-1, 2.38168548E-3, 3.65647991E-1, -3.43302726E-3, -5.06182999E-4, -1.49453769E-13],
-                 "Mdot_pred": [9.90958566E-1, 1.66658435E-2, -1.91782998E-5],
+                 "Mdot_pred": [9.90958566E-1 , 1.66658435E-2, -1.91782998E-5],
                  "Wdot_rated": [4.68221681E+0, 2.89315135E+1, 5.08822631E-1, -2.52904377E-6, 3.72538174E+1,
                                 2.52480352E+0, -1.98829304E-2, -6.79818927E-1, 1.96893378E-3, -3.26935360E-3, -2.85508042E-12],
                  "Wdot_pred": [6.5629020e-02, 1.3365647e-03, 3.4921488e-06]},
@@ -89,7 +89,8 @@ class COMPRESSORMAPMODEL():
         self.create_folder('{}/VirtualSensor'.format(self.SAVE_PATH))  # Deepmodel 폴더를 생성
 
     def VSENSOR_PROCESSING(self, out_unit, freqValue, PdisValue, PsucValue, TsucValue,
-                           TdisValue, TcondOutValue, TliqValue, TAirinValue, TAiroutValue, ToaValue, VAiroutValue, CompSignal, target):
+                           TdisValue, TcondOutValue, TliqValue, TAirinValue, TAiroutValue,
+                           ToaValue, VAiroutValue, CompSignal, target):
         # 예측 대상
         self.target = target
 
@@ -177,9 +178,9 @@ class COMPRESSORMAPMODEL():
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '00:00:00'#'11:30:00' 14:50:00
-        et = '23:59:00'#'14:30:00' 17:50:00
-        self.gap = 60
+        st = '14:50:00'#'11:30:00' 14:50:00
+        et = '17:50:00'#'14:30:00' 17:50:00
+        self.gap = 12 # 60
         solve = self._outdata
         solve = solve[solve.index >= self.folder_name + ' ' + st]
         solve = solve[solve.index <= self.folder_name + ' ' + et]
@@ -201,39 +202,56 @@ class COMPRESSORMAPMODEL():
         self.PlottingUASensor(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
 
     def VirtualUASensor(self): # 컨덴서 열 관류율 가상센서 W/m^2-K
-        self.VirtualUA = self.DischargePressure.replace(PdisValue, 'virtual_ua')
+        self.VirtualUA_cond = self.DischargePressure.replace(PdisValue, 'virtual_ua_cond')
+        self.VirtualUA_evap = self.DischargePressure.replace(PdisValue, 'virtual_ua_evap')
         Tdis1 = self._outdata[self.DischargeTemp[0]].tolist()
         Tdis2 = self._outdata[self.DischargeTemp[1]].tolist()
         TcondOut = self._outdata[self.CondOutTemp].tolist()  # Double tube temp
         High_p = self._outdata[self.DischargePressure].tolist()
         Low_p = self._outdata[self.SuctionPressure].tolist()
+        Tsuc = self._outdata[self.SuctionTemp[0]].tolist()
+        h_evapIn = self._outdata[self.EnthalpyEvapIn].tolist()
 
         num = 0
         while num < self._outdata.shape[0]:
             Tdis = (Tdis1[num] + Tdis2[num]) / 2
             c_p = CP.CoolProp.PropsSI('C', 'P', Low_p[num] * 100 * 1000, 'Q', 1, 'R410A') / 1000
-            Tcond_sat = CP.CoolProp.PropsSI('T', 'P', High_p[num] * 100 * 1000, 'Q', 0, 'R410A') / 1000
-            ua = self._outdata[self.VirtualMdotPred][num] * c_p * np.log(abs(Tcond_sat - Tdis) / abs(Tcond_sat - TcondOut[num]))
-            self._outdata.at[self._outdata.index[num], "{}".format(self.VirtualUA)] = ua
+            Tcond_sat = CP.CoolProp.PropsSI('T', 'P', High_p[num] * 100 * 1000, 'Q', 1, 'R410A') - 273.15
+            ua_cond = self._outdata[self.VirtualMdotPred][num] * c_p * np.log(abs(Tcond_sat - Tdis) / abs(Tcond_sat - TcondOut[num]))
+
+            Tcond_sat = CP.CoolProp.PropsSI('T', 'P', Low_p[num] * 100 * 1000, 'Q', 0, 'R410A') - 273.15
+            ua_evap = self._outdata[self.VirtualMdotPred][num] * c_p * np.log(abs(Tcond_sat - TcondOut[num]) / abs(Tcond_sat - Tsuc[num]))
+
+            self._outdata.at[self._outdata.index[num], "{}".format(self.VirtualUA_cond)] = abs(ua_cond)
+            self._outdata.at[self._outdata.index[num], "{}".format(self.VirtualUA_evap)] = abs(ua_evap)
             num += 1
 
     def VirtualPerformanceSensor(self):
-        self.Performance = self.DischargePressure.replace(PdisValue, 'cop')
-        # AirMassFlow = self._outdata[self.OutletAirMassFlow].tolist()
+        self.Performance = self.DischargePressure.replace(PdisValue, 'virtual_cop')
+        self.Performance_real = self.DischargePressure.replace(PdisValue, 'real_cop')
         HeatCapacity = self._outdata[self.HeatingCapacity].tolist()
-        # RealPower = self._outdata[self.RealPower].tolist()
         VirtualPower = self._outdata[self.VirtualPower].tolist()
+        RealPower = self._outdata[self.RealPower].tolist()
+
+        virtual_cop_prev = 0
+        real_cop_prev = 0
         num = 0
-        perform_prev = 0
         while num < self._outdata.shape[0]:
             try:
-                cop = (HeatCapacity[num]) / (VirtualPower[num]) # kW/kW
-                # cop_real = (HeatCapacity[num]) / (RealPower[num])  # kW/kW
+                virtual_cop = HeatCapacity[num] / VirtualPower[num] # kW/kW
             except ZeroDivisionError:
-                cop = 0
-            if cop - perform_prev > 5:
-                cop = perform_prev
-            self._outdata.at[self._outdata.index[num], "{}".format(self.Performance)] = cop
+                virtual_cop = virtual_cop_prev
+
+            real_cop = 0
+            # try:
+            #     print(HeatCapacity[num], RealPower[num])
+            #     real_cop = (HeatCapacity[num]) / (RealPower[num])  # kW/kW
+            # except ZeroDivisionError:
+            #     real_cop = real_cop_prev
+
+            real_cop_prev = real_cop
+            self._outdata.at[self._outdata.index[num], "{}".format(self.Performance)] = virtual_cop
+            self._outdata.at[self._outdata.index[num], "{}".format(self.Performance_real)] = real_cop
             num += 1
 
     def VirtualAirVolumeFlowSensor(self):
@@ -242,26 +260,50 @@ class COMPRESSORMAPMODEL():
         TairOut = self._outdata[self.AirOutletTemperature].tolist()
         TairIn = self._outdata[self.AirInletTemperature].tolist()
         Toa = self._outdata[self.OutdoorAirTemperature].tolist()
-        HeatCapacity = self._outdata[self.HeatingCapacity].tolist()
+        High_p = self._outdata[self.DischargePressure].tolist()
+        Tdis1 = self._outdata[self.DischargeTemp[0]].tolist()
+        Tdis2 = self._outdata[self.DischargeTemp[1]].tolist()
+        m_dot_pred = self._outdata[self.VirtualMdotPred].tolist()
         AirVolumeFlow_real = self._outdata[self.AirOutletVolumeReal].tolist()
+        TcondOut = self._outdata[self.CondOutTemp].tolist()  # Double tube temp
 
         num = 0
         AirVolFlow_prev = 0
+        h_diff_prev = 0
+        t_diff_prev = 0
         while num < self._outdata.shape[0]:
             c_p_air = CP.CoolProp.PropsSI('C', 'P', 101325, 'T', Toa[num] + 273.15, 'Air') / 1000 #1.0035
+            rho_air = CP.CoolProp.PropsSI('D', 'P', 101325, 'T', Toa[num] + 273.15, 'Air')
+
+            h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
             try:
-                AirVolFlow = 3600 * HeatCapacity[num] / ((c_p_air * (TairOut[num] - TairIn[num])) * 1.24)
-            except ZeroDivisionError:
-                if (self._outdata[self.CompressorSignal[0]][num] == 0) & (self._outdata[self.CompressorSignal[1]][num] == 0):
-                    AirVolFlow = 0
+                h_condOut = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', TcondOut[num] + 273.15, 'R410A') / 1000
+            except ValueError:
+                h_condOut = 0
+                print("Two Phase Error!")
+
+            h_diff = h_dis - h_condOut
+            t_diff = TairIn[num] - TairOut[num]
+
+            if h_diff < 50:
+                h_diff = 0
+
+            if t_diff < 1:
+                t_diff = t_diff_prev
+
+            if t_diff != 0:
+                AirVolFlow = (m_dot_pred[num] * (h_diff)) / (c_p_air * t_diff * rho_air)
+            else:
+                AirVolFlow = AirVolFlow_prev
+
+            # 정방향
             if AirVolFlow <= 0:
-                AirVolFlow = abs(AirVolFlow)
-            if AirVolFlow - AirVolFlow_prev > 5000:
-                AirVolFlow = AirVolFlow_prev
-            elif math.isnan(AirVolFlow):
-                AirVolFlow = AirVolFlow_prev
+                AirVolFlow = 0
+
+            AirVolFlow_prev = AirVolFlow
+            t_diff_prev = t_diff
             self._outdata.at[self._outdata.index[num], "{}".format(self.OutletAirVolumeFlow)] = AirVolFlow
-            self._outdata.at[self._outdata.index[num], "{}".format(self.AirOutletVolumeReal)] = AirVolumeFlow_real[num]
+            self._outdata.at[self._outdata.index[num], "{}".format(self.AirOutletVolumeReal)] = AirVolumeFlow_real[num] * 3 / 60
             num += 1
 
     def VirtualHeatingCapacitySensor(self):
@@ -274,7 +316,6 @@ class COMPRESSORMAPMODEL():
         Tdis2 = self._outdata[self.DischargeTemp[1]].tolist()
         TcondOut = self._outdata[self.CondOutTemp].tolist()  # Double tube temp
         num = 0
-        HeatCapacity_prev = 0
         while num < self._outdata.shape[0]:
             h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
             try:
@@ -283,17 +324,13 @@ class COMPRESSORMAPMODEL():
                 h_condOut = 0
                 print("Two Phase Error!")
 
-            HeatCapacity = self._outdata[self.VirtualMdotPred][num] * (h_dis - h_condOut) / 60
-            if (self._outdata[self.CompressorSignal[0]][num] == 0) & (self._outdata[self.CompressorSignal[1]][num] == 0):
-                HeatCapacity = 0
-            if HeatCapacity - HeatCapacity_prev > 39:
-                HeatCapacity = HeatCapacity_prev
+            h_diff =  h_dis - h_condOut
+            HeatCapacity = self._outdata[self.VirtualMdotPred][num] * h_diff / 10
 
             self._outdata.at[self._outdata.index[num], "{}".format(self.EnthalpyDischarge)] = h_dis
             self._outdata.at[self._outdata.index[num], "{}".format(self.CondenserOutlet)] = h_condOut
-            self._outdata.at[self._outdata.index[num], "{}".format(self.DiffHeatEnthalpy)] = h_dis - h_condOut
+            self._outdata.at[self._outdata.index[num], "{}".format(self.DiffHeatEnthalpy)] = h_diff
             self._outdata.at[self._outdata.index[num], "{}".format(self.HeatingCapacity)] = HeatCapacity
-            HeatCapacity_prev = HeatCapacity
             num += 1
 
     def VirtualCoolingCapacitySensor(self):
@@ -301,16 +338,15 @@ class COMPRESSORMAPMODEL():
         self.CondenserOutlet = self.DischargePressure.replace(PdisValue, 'cond_out_enthalpy')
         self.EnthalpySuction = self.DischargePressure.replace(PdisValue, 'suction_enthalpy')
         self.EnthalpyEvapIn = self.DischargePressure.replace(PdisValue, 'evap_in_enthalpy')
+        self.DiffEvapEnthalpy = self.DischargePressure.replace(PdisValue, 'diff_evap_enthalpy')
 
         Low_p = self._outdata[self.SuctionPressure].tolist()
         High_p = self._outdata[self.DischargePressure].tolist()
         TcondOut = self._outdata[self.CondOutTemp].tolist()  # Double tube temp
         Tsuc = self._outdata[self.SuctionTemp[0]].tolist()
-        Tdis1 = self._outdata[self.DischargeTemp[0]].tolist()
-        Tdis2 = self._outdata[self.DischargeTemp[1]].tolist()
 
         num = 0
-        CoolCapacity_prev = 0
+        h_evapIn_prev = 0
         while num < self._outdata.shape[0]:
             h_suc = CP.CoolProp.PropsSI('H', 'P', Low_p[num] * 100 * 1000, 'T', Tsuc[num] + 273.15, 'R410A') / 1000 #[kJ/kg]
 
@@ -318,23 +354,23 @@ class COMPRESSORMAPMODEL():
                 h_condOut = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', TcondOut[num] + 273.15,'R410A') / 1000
                 h_evapIn = CP.CoolProp.PropsSI('H', 'P', Low_p[num] * 100 * 1000, 'H', h_condOut * 1000, 'R410A') / 1000
             except ValueError:
-                h_evapIn = 0
+                h_evapIn = h_evapIn_prev
                 print("Two Phase Error!")
+            h_diff = h_suc - h_evapIn
 
-            CoolCapacity = self._outdata[self.VirtualMdotPred][num] * (h_suc - h_evapIn) / 60 # kW
-            if (self._outdata[self.CompressorSignal[0]][num] == 0) & (self._outdata[self.CompressorSignal[1]][num] == 0):
-                CoolCapacity = 0
-            if CoolCapacity - CoolCapacity_prev > 39:
-                CoolCapacity = CoolCapacity_prev
+            CoolCapacity = self._outdata[self.VirtualMdotPred][num] * h_diff / 10
 
+            h_evapIn_prev = h_evapIn
             self._outdata.at[self._outdata.index[num], "{}".format(self.EnthalpySuction)] = h_suc # kJ/kg
             self._outdata.at[self._outdata.index[num], "{}".format(self.EnthalpyEvapIn)] = h_evapIn # kJ/kg
+            self._outdata.at[self._outdata.index[num], "{}".format(self.DiffEvapEnthalpy)] = h_diff
             self._outdata.at[self._outdata.index[num], "{}".format(self.CoolingCapacity)] = CoolCapacity # kW
             num += 1
 
     def VirtualMassFlowSensor(self):
         self.VirtualMdotPred = self.DischargePressure.replace(PdisValue, 'm_dot_pred')
         self.RealMdot = self.DischargePressure.replace(PdisValue, 'm_dot_real')
+        self.DiffCompEnthalpy = self.DischargePressure.replace(PdisValue, 'diff_comp_enthalpy')
         self.RatedFrequency = 58 #Hz
 
         Low_p = self._outdata[self.SuctionPressure].tolist()
@@ -344,27 +380,42 @@ class COMPRESSORMAPMODEL():
         Tdis2 = self._outdata[self.DischargeTemp[1]].tolist()
 
         num = 0
-        m_dot_pred_prev = 0
+        h_diff_prev = 0
         while num < self._outdata.shape[0]:
             #Virtual Mass Flow
-            # f_real = max(self._outdata[self.freq[0]][num], self._outdata[self.freq[1]][num])
             f_real = (self._outdata[self.freq[0]][num] + self._outdata[self.freq[1]][num])/2
-            m_dot_pred = self._outdata[self.VirtualMdotRated][num] \
-                         * (self.coef_mdotrated[0] + self.coef_mdotrated[1] * (f_real - self.RatedFrequency)
-                            + self.coef_mdotrated[2] * pow(f_real - self.RatedFrequency, 2)) / 60
-            if m_dot_pred <= 0:
-                m_dot_pred = 0
-            if (self._outdata[self.CompressorSignal[0]][num] == 0) & (self._outdata[self.CompressorSignal[1]][num] == 0):
-                m_dot_pred = 0 #m_dot_pred_prev
-            if m_dot_pred - m_dot_pred_prev > 19:
-                m_dot_pred = m_dot_pred_prev
+            """Baseline"""
+            h_suc = CP.CoolProp.PropsSI('H', 'P', Low_p[num] * 100 * 1000, 'T', Tsuc[num] + 273.15, 'R410A') / 1000  # [kJ/kg]
+            h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', ((Tdis1[num] + Tdis2[num]) / 2) + 273.15, 'R410A') / 1000
+            h_diff = h_dis - h_suc
 
-            h_suc = CP.CoolProp.PropsSI('H', 'P', Low_p[num] * 100 * 1000, 'T', Tsuc[num] + 273.15, 'R410A') / 1000 #[kJ/kg]
-            h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num] + Tdis2[num]) + 273.15, 'R410A') / 1000
-            m_dot_real = self._outdata[self.RealPower][num] * 10 / (h_dis - h_suc)
-            if m_dot_real < 0:
+            # 엔탈피 차이가 매우 작은 경우에는 꺼진 것과 다름 없기 때문에
+            # 급격한 Mass Flow 상승이 되지 않도록 0으로 만들어줌.
+            if (h_diff < 5) & (h_diff > 0):
+                h_diff = h_diff_prev
+            elif h_diff <= 0:
+                h_diff = 0
+
+            if h_diff != 0:
+                m_dot_real = self._outdata[self.RealPower][num] / h_diff
+            else:
+                m_dot_real = 0
+            # 정방향
+            if m_dot_real <= 0:
                 m_dot_real = 0
 
+            """Virtual Sensor"""
+            if h_diff != 0:
+                m_dot_pred = self._outdata[self.VirtualMdotRated][num] \
+                             * (self.coef_mdotpred[0] + self.coef_mdotpred[1] * (f_real - self.RatedFrequency)
+                                + self.coef_mdotpred[2] * pow((f_real - self.RatedFrequency), 2))
+            else:
+                m_dot_pred = 0
+            # 정방향
+            if m_dot_pred <= 0:
+                m_dot_pred = 0
+            h_diff_prev = h_diff
+            self._outdata.at[self._outdata.index[num], "{}".format(self.DiffCompEnthalpy)] = h_diff
             self._outdata.at[self._outdata.index[num], "{}".format(self.RealMdot)] = m_dot_real
             self._outdata.at[self._outdata.index[num], "{}".format(self.VirtualMdotPred)] = m_dot_pred
             num += 1
@@ -374,10 +425,9 @@ class COMPRESSORMAPMODEL():
         num = 0
         while num < self._outdata.shape[0]:
             Tsuc_real = self._outdata[self.SuctionTemp[0]][num]
-            Tdis_real = ((self._outdata[self.DischargeTemp[0]][num] + self._outdata[self.DischargeTemp[1]][num])/2)
-            # Tdis_real = max(self._outdata[self.DischargeTemp[0]][num], self._outdata[self.DischargeTemp[1]][num])
+            Tdis_real = (self._outdata[self.DischargeTemp[0]][num] + self._outdata[self.DischargeTemp[1]][num])/2
             self._outdata.at[self._outdata.index[num], "{}".format(self.VirtualMdotRated)] \
-            = (self._outdata[self.MapDensity][num] * (self.coef_wdotrated[0]
+            = (self._outdata[self.MapDensity][num] * (self.coef_mdotrated[0]
             + self.coef_mdotrated[1] * Tsuc_real
             + self.coef_mdotrated[2] * pow(Tsuc_real, 2)
             + self.coef_mdotrated[3] * pow(Tsuc_real, 3)
@@ -387,7 +437,7 @@ class COMPRESSORMAPMODEL():
             + self.coef_mdotrated[7] * Tsuc_real * Tdis_real
             + self.coef_mdotrated[8] * Tsuc_real * pow(Tdis_real, 2)
             + self.coef_mdotrated[9] * pow(Tsuc_real, 2) * Tdis_real
-            + self.coef_mdotrated[10] * pow(Tsuc_real, 2) * pow(Tdis_real, 2))) / 3600
+            + self.coef_mdotrated[10] * pow(Tsuc_real, 2) * pow(Tdis_real, 2)))/3600
             num += 1
 
     def VirtualPowerSensor(self):
@@ -447,6 +497,8 @@ class COMPRESSORMAPMODEL():
                 = CP.CoolProp.PropsSI('D', 'P', self._outdata[self.SuctionPressure][num] * 100 * 1000, 'T', self._outdata[self.SuctionTemp[0]][num] + 273.15, 'R410A')
             num += 1
 
+    """ Prediction Performance"""
+
     def CvRMSE(self, realList, predList):
         errorList = []
         for i in range(len(realList)):
@@ -464,6 +516,8 @@ class COMPRESSORMAPMODEL():
         error = 100 * ERR
         print("MBE : {} % ".format(round(error, 2)))
         return round(error, 2)
+
+    """Plotting"""
 
     def PlottingSystem(self, plt_ST, plt_ET, save, out_unit):
         plt.rcParams["font.family"] = "Times New Roman"
@@ -557,130 +611,6 @@ class COMPRESSORMAPMODEL():
         # plt.show()
         plt.clf()
 
-    def PlottingUASensor(self, plt_ST, plt_ET, save, out_unit):
-        plt.rcParams["font.family"] = "Times New Roman"
-        solve = self._outdata.fillna(0)
-        solve.index = pd.to_datetime(solve.index)
-        solve = solve.resample(rule='5min').mean()
-        solve = solve[solve.index >= plt_ST]
-        solve = solve[solve.index <= plt_ET]
-
-        tt0 = solve.index.tolist()
-        tt = []
-        for i in range(len(tt0)):
-            k = str(tt0[i])[8:16]
-            tt.append(k)
-
-        fig = plt.figure(figsize=(25, 12))
-        ax1 = fig.add_subplot(2, 1, 1)
-        ax2 = fig.add_subplot(2, 1, 2)
-
-        ax1.plot(tt, solve[self.FanSteps].tolist(), 'g-', linewidth='2', alpha=0.9, drawstyle='steps-post')
-        ax2.plot(tt, solve[self.VirtualUA].tolist(), 'b-', linewidth='2', alpha=0.9, drawstyle='steps-post')
-
-
-        gap = self.gap  # 09~18 : 120 240
-        ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
-        ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
-
-        ax1.tick_params(axis="x", labelsize=22)
-        ax2.tick_params(axis="x", labelsize=22)
-
-        ax1.tick_params(axis="y", labelsize=22)
-        ax2.tick_params(axis="y", labelsize=22)
-
-        ax1.set_ylabel('Fan steps', fontsize=26)
-        ax2.set_ylabel('UA', fontsize=26)
-
-        ax1.set_yticks([0, 25, 50, 75, 100])
-        ax2.set_yticks([0, 5, 10, 15, 20])
-
-        ax1.set_ylim([0, 100])
-        ax2.set_ylim([0, 20])
-
-        ax1.legend(['Fan steps'], fontsize=18, ncol=2, loc='upper right')
-        ax2.legend(['UA ($kW/K$)'], fontsize=18,  ncol=2, loc='upper right')
-
-        ax1.autoscale(enable=True, axis='x', tight=True)
-        ax2.autoscale(enable=True, axis='x', tight=True)
-
-        ax1.grid()
-        ax2.grid()
-
-        plt.tight_layout()
-
-        plt.savefig("{}/VirtualUASensor_Outdoor_{}.png".format(save, out_unit))
-        # plt.show()
-        plt.clf()
-
-    def PlottingPerformanceSensor(self, plt_ST, plt_ET, save, out_unit):
-        plt.rcParams["font.family"] = "Times New Roman"
-        solve = self._outdata.fillna(0)
-        solve.index = pd.to_datetime(solve.index)
-        solve = solve.resample(rule='5min').mean()
-        solve = solve[solve.index >= plt_ST]
-        solve = solve[solve.index <= plt_ET]
-
-        tt0 = solve.index.tolist()
-        tt = []
-        for i in range(len(tt0)):
-            k = str(tt0[i])[8:16]
-            tt.append(k)
-
-        fig = plt.figure(figsize=(25, 18))
-        ax1 = fig.add_subplot(3, 1, 1)
-        ax2 = fig.add_subplot(3, 1, 2)
-        ax3 = fig.add_subplot(3, 1, 3)
-
-        ax1.plot(tt, solve[self.DiffHeatEnthalpy].tolist(), 'g-', linewidth='2', alpha=0.9, drawstyle='steps-post')
-        ax2.plot(tt, solve[self.HeatingCapacity].tolist(), 'r-', linewidth='2', alpha=0.9, drawstyle='steps-post')
-        ax3.plot(tt, solve[self.Performance].tolist(), 'b-', linewidth='2', alpha=0.9, drawstyle='steps-post')
-
-        gap = self.gap  # 09~18 : 120 240
-        ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
-        ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
-        ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
-
-        ax1.tick_params(axis="x", labelsize=26)
-        ax2.tick_params(axis="x", labelsize=26)
-        ax3.tick_params(axis="x", labelsize=26)
-
-        ax1.tick_params(axis="y", labelsize=26)
-        ax2.tick_params(axis="y", labelsize=26)
-        ax3.tick_params(axis="y", labelsize=26)
-
-        ax1.set_ylabel('Enthalpy difference', fontsize=28)
-        ax2.set_ylabel('Capacity', fontsize=28)
-        ax3.set_ylabel('Performance', fontsize=28)
-
-        ax1.set_yticks([0, 100, 200, 300, 400, 500, 600, 700, 800])
-        # ax2.set_yticks([0, 20, 40, 60, 80, 100])
-        ax3.set_yticks([0, 2, 4, 6, 8])
-
-        ax1.set_ylim([0, max(solve[self.DiffHeatEnthalpy].tolist())*1.5])
-        # ax2.set_ylim([0, max(solve[self.HeatingCapacity].tolist()) * 1.2])
-        ax3.set_ylim([0, 6])
-
-        ax1.legend(['Enthalpy Difference \n between Discharge and Condenser outlet ($kJ/kg$)'],
-                   fontsize=22,  ncol=2, loc='upper right')
-        ax2.legend(['Virtual Heating Capacity($kW$)'],
-                   fontsize=22, ncol=2, loc='upper right')
-        ax3.legend(['Virtual COP($kW/kW$)'],
-                   fontsize=22, ncol=2, loc='upper right')
-
-        ax1.autoscale(enable=True, axis='x', tight=True)
-        ax2.autoscale(enable=True, axis='x', tight=True)
-        ax3.autoscale(enable=True, axis='x', tight=True)
-
-        ax1.grid()
-        ax2.grid()
-        ax3.grid()
-
-        plt.tight_layout()
-        plt.savefig("{}/VirtualPerformanceSensor_Outdoor_{}.png".format(save, out_unit))
-        # plt.show()
-        plt.clf()
-
     def PlottingMeasurement(self, plt_ST, plt_ET, save, out_unit):
         plt.rcParams["font.family"] = "Times New Roman"
         solve = self._outdata.fillna(0)
@@ -702,7 +632,7 @@ class COMPRESSORMAPMODEL():
 
         ax1.plot(tt, solve[self.AirOutletTemperature].tolist(), 'b--', linewidth='2', alpha=0.9, drawstyle='steps-post')
         ax1.plot(tt, solve[self.AirInletTemperature].tolist(), 'k-', linewidth='2', alpha=0.9, drawstyle='steps-post')
-        ax2.plot(tt, solve[self.AirOutletVolumeReal].tolist(), 'k-', linewidth='2', alpha=0.9, drawstyle='steps-post')  # Real
+        ax2.plot(tt, solve[self.AirOutletVolumeReal].tolist(), 'k-', linewidth='2', alpha=0.9, drawstyle='steps-post')
         ax2.plot(tt, solve[self.OutletAirVolumeFlow].tolist(), 'b--', linewidth='2', alpha=0.9, drawstyle='steps-post')
         ax3.plot(tt, solve[self.RealMdot].tolist(), 'k-', linewidth='2', alpha=0.9, drawstyle='steps-post')
         ax3.plot(tt, solve[self.VirtualMdotPred].tolist(), 'r--', linewidth='2', alpha=0.9, drawstyle='steps-post')
@@ -725,16 +655,16 @@ class COMPRESSORMAPMODEL():
         ax3.set_ylabel('Mass Flow Rate', fontsize=28)
 
         ax1.set_yticks([0, 5, 10, 15, 20, 25, 30])
-        ax2.set_yticks([0, 2000, 4000, 6000, 8000])
-        ax3.set_yticks([0, 5, 10, 15, 20])
+        # ax2.set_yticks([0, 40, 80, 120, 160, 200])
+        # ax3.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
 
         ax1.set_ylim([0, 20])
-        ax2.set_ylim([0, 8000])
-        ax3.set_ylim([0, 20])
+        # ax2.set_ylim([0, 200])
+        # ax3.set_ylim([0, 0.8])
 
         ax1.legend(['Outlet Air Temperature($^{\circ}C$)', 'Inlet Air Temperature($^{\circ}C$)'],
                    fontsize=22, ncol=2, loc='upper right')
-        ax2.legend(['Outlet Real Air Volume Flow Rate($m^{3}/h$)', 'Outlet Virtual Air Volume Flow Rate($m^{3}/h$)'],
+        ax2.legend(['Outlet Real Air Volume Flow Rate($m^{3}/min$)', 'Outlet Virtual Air Volume Flow Rate($m^{3}/min$)'],
                    fontsize=22, ncol=2, loc='upper right')
         ax3.legend(['Real Mass flow Rate($kg/s$)', 'Virtual Mass flow Rate($kg/s$)'],
                    fontsize=22, ncol=2, loc='upper right')
@@ -796,6 +726,137 @@ class COMPRESSORMAPMODEL():
         # plt.show()
         plt.clf()
 
+    def PlottingUASensor(self, plt_ST, plt_ET, save, out_unit):
+        plt.rcParams["font.family"] = "Times New Roman"
+        solve = self._outdata.fillna(0)
+        solve.index = pd.to_datetime(solve.index)
+        solve = solve.resample(rule='5min').mean()
+        solve = solve[solve.index >= plt_ST]
+        solve = solve[solve.index <= plt_ET]
+
+        tt0 = solve.index.tolist()
+        tt = []
+        for i in range(len(tt0)):
+            k = str(tt0[i])[8:16]
+            tt.append(k)
+
+        fig = plt.figure(figsize=(25, 12))
+        ax1 = fig.add_subplot(2, 1, 1)
+        ax2 = fig.add_subplot(2, 1, 2)
+
+        ax1.plot(tt, solve[self.FanSteps].tolist(), 'g-', linewidth='2', alpha=0.9, drawstyle='steps-post')
+        ax2.plot(tt, solve[self.VirtualUA_cond].tolist(), 'b--', linewidth='2', alpha=0.9, drawstyle='steps-post')
+        ax2.plot(tt, solve[self.VirtualUA_evap].tolist(), 'r-', linewidth='2', alpha=0.9, drawstyle='steps-post')
+
+
+        gap = self.gap  # 09~18 : 120 240
+        ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+
+        ax1.tick_params(axis="x", labelsize=26)
+        ax2.tick_params(axis="x", labelsize=26)
+
+        ax1.tick_params(axis="y", labelsize=26)
+        ax2.tick_params(axis="y", labelsize=26)
+
+        ax1.set_ylabel('Fan steps', fontsize=28)
+        ax2.set_ylabel('UA', fontsize=28)
+
+        ax1.set_yticks([0, 25, 50, 75, 100])
+        # ax2.set_yticks([0, 5, 10])
+
+        ax1.set_ylim([0, 100])
+        # ax2.set_ylim([0, 10])
+
+        ax1.legend(['Fan steps'], fontsize=22, ncol=2, loc='upper right')
+        ax2.legend(['UA (Outdoor, $kW/K$)','UA (Indoor, $kW/K$)'], fontsize=22,  ncol=2, loc='upper right')
+
+        ax1.autoscale(enable=True, axis='x', tight=True)
+        ax2.autoscale(enable=True, axis='x', tight=True)
+
+        ax1.grid()
+        ax2.grid()
+
+        plt.tight_layout()
+
+        plt.savefig("{}/VirtualUASensor_Outdoor_{}.png".format(save, out_unit))
+        # plt.show()
+        plt.clf()
+
+    def PlottingPerformanceSensor(self, plt_ST, plt_ET, save, out_unit):
+        plt.rcParams["font.family"] = "Times New Roman"
+        solve = self._outdata.fillna(0)
+        solve.index = pd.to_datetime(solve.index)
+        solve = solve.resample(rule='5min').mean()
+        solve = solve[solve.index >= plt_ST]
+        solve = solve[solve.index <= plt_ET]
+
+        tt0 = solve.index.tolist()
+        tt = []
+        for i in range(len(tt0)):
+            k = str(tt0[i])[8:16]
+            tt.append(k)
+
+        fig = plt.figure(figsize=(25, 18))
+        ax1 = fig.add_subplot(3, 1, 1)
+        ax2 = fig.add_subplot(3, 1, 2)
+        ax3 = fig.add_subplot(3, 1, 3)
+
+        ax1.plot(tt, solve[self.DiffHeatEnthalpy].tolist(), 'g-', linewidth='2', alpha=0.9, drawstyle='steps-post')
+        ax1.plot(tt, solve[self.DiffCompEnthalpy].tolist(), 'b--', linewidth='2', alpha=0.9, drawstyle='steps-post')
+        ax1.plot(tt, solve[self.DiffEvapEnthalpy].tolist(), 'k-.', linewidth='2', alpha=0.9, drawstyle='steps-post')
+        ax2.plot(tt, solve[self.HeatingCapacity].tolist(), 'r-', linewidth='2', alpha=0.9, drawstyle='steps-post')
+        ax2.plot(tt, solve[self.CoolingCapacity].tolist(), 'b--', linewidth='2', alpha=0.9, drawstyle='steps-post')
+        ax3.plot(tt, solve[self.Performance].tolist(), 'b-', linewidth='2', alpha=0.9, drawstyle='steps-post')
+        ax3.plot(tt, solve[self.Performance_real].tolist(), 'r--', linewidth='2', alpha=0.9, drawstyle='steps-post')
+
+        gap = self.gap  # 09~18 : 120 240
+        ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+
+        ax1.tick_params(axis="x", labelsize=26)
+        ax2.tick_params(axis="x", labelsize=26)
+        ax3.tick_params(axis="x", labelsize=26)
+
+        ax1.tick_params(axis="y", labelsize=26)
+        ax2.tick_params(axis="y", labelsize=26)
+        ax3.tick_params(axis="y", labelsize=26)
+
+        ax1.set_ylabel('Enthalpy difference', fontsize=28)
+        ax2.set_ylabel('Capacity', fontsize=28)
+        ax3.set_ylabel('Performance', fontsize=28)
+
+        ax1.set_yticks([0, 100, 200, 300, 400, 500, 600, 700, 800])
+        ax2.set_yticks([0, 20, 40, 60, 80, 100])
+        ax3.set_yticks([0, 2, 4, 6, 8, 10])
+
+        ax1.set_ylim([0, 400]) # 400
+        ax2.set_ylim([0, 100])
+        ax3.set_ylim([0, 6])
+
+        ax1.legend(['Enthalpy Difference \n between Discharge and Condenser outlet ($kJ/kg$)',
+                    'Enthalpy Difference \n between Compressor inlet and Discharge ($kJ/kg$)',
+                    'Enthalpy Difference \n between Evaporator inlet and Suction ($kJ/kg$)'],
+                   fontsize=22,  ncol=2, loc='upper right')
+        ax2.legend(['Virtual Capacity(Indoor, $kW$)','Virtual Capacity (Outdoor, $kW$)'],
+                   fontsize=22, ncol=2, loc='upper right')
+        ax3.legend(['Virtual Performance(COP, $kW/kW$)'],
+                   fontsize=22, ncol=2, loc='upper right')
+
+        ax1.autoscale(enable=True, axis='x', tight=True)
+        ax2.autoscale(enable=True, axis='x', tight=True)
+        ax3.autoscale(enable=True, axis='x', tight=True)
+
+        ax1.grid()
+        ax2.grid()
+        ax3.grid()
+
+        plt.tight_layout()
+        plt.savefig("{}/VirtualPerformanceSensor_Outdoor_{}.png".format(save, out_unit))
+        # plt.show()
+        plt.clf()
+
     def PlottingVirtualPowerSensorAccuracy(self, plt_ST, plt_ET, save, out_unit):
         plt.rcParams["font.family"] = "Times New Roman"
         solve = self._outdata.fillna(0)
@@ -810,6 +871,7 @@ class COMPRESSORMAPMODEL():
             k = str(tt0[i])[8:16]
             tt.append(k)
 
+        #작동중인 데이터만 사용해서 정확도 계산을 위한 데이터만 남김
         tem = solve[(solve[self.CompressorSignal[0]] == 1) | (solve[self.CompressorSignal[1]] == 1)]
         tem.to_csv("{}/ACCData_Outdoor_{}.csv".format(save, out_unit))
 

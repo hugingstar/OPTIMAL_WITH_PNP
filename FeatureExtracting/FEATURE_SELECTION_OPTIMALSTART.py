@@ -5,6 +5,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier
+from xgboost import XGBClassifier
 import os
 import numpy as np
 
@@ -211,6 +212,9 @@ class ENSEMBLE():
                                             learning_rate=self.LEARNING_RATE, random_state=self.RANDOM_STATE)
             elif self.method == "Gradientboosting":
                 forest = GradientBoostingClassifier(learning_rate=self.LEARNING_RATE, n_estimators=self.N_ESTIMATION,
+                                                    max_depth=self.MAX_DEPTH, eval_metric='mlogloss')
+            elif self.method == "XGBoosting":
+                forest = XGBClassifier(learning_rate=self.LEARNING_RATE, n_estimators=self.N_ESTIMATION,
                                                     max_depth=self.MAX_DEPTH, max_features=self.MAX_FEATURES,
                                                     random_state=self.RANDOM_STATE)
             elif self.method == "DecisionTree":
@@ -262,7 +266,6 @@ class ENSEMBLE():
             plt.tight_layout()
             plt.savefig("{}/FIGIMP_Outdoor_{}_Indoor_{}_PREDMIN_{}.png".format(save_rdf, out_unit, i, self.PREDMIN))
             plt.clf()
-            break
 
     def create_folder(self, directory):
         try:
@@ -294,7 +297,7 @@ TspValue = 'set_temp' # 설정 온도
 TzValue =  'room_temp' # 방 온도
 ToaValue = 'outdoor_temp' # 외기 온도도
 PREDMIN = [60]
-METHOD = "Randomforest" #Randomforest, Adaboosting, Gradientboosting, Decisiontree
+METHOD = "XGBoosting" #Randomforest, Adaboosting, Gradientboosting, Decisiontree, XGBoosting
 
 for j in PREDMIN:
     ens = ENSEMBLE(time=time, TRAIN_SIZE=TRAIN_SIZE, N_ESTIMATION=N_ESTIMATION,
