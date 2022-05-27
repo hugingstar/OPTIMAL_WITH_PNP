@@ -189,8 +189,8 @@ class DataCorrection:
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '11:10:00'
-        et = '14:10:00'
+        st = '00:00:00' #11:10:00
+        et = '23:59:00'#14:10:00
 
         # Plotting
         self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)

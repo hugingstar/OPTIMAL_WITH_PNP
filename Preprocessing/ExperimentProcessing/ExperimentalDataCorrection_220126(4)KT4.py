@@ -188,8 +188,8 @@ class DataCorrection:
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '14:20:00'
-        et = '17:20:00'
+        st = '14:20:00' # 14:20:00
+        et = '17:20:00' # 17:20:00
 
         # Plotting
         self.PlottingOutdoorSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
@@ -223,7 +223,7 @@ class DataCorrection:
 
         # Inlet
         cd_col_list = []
-        for _ in [65, 63, 56, 53 ]:
+        for _ in [65, 63, 56, 53]:
             #6, 7, 8, 9, 10,
              ##     11, 12, 14, 15, 16, 17, 18, 20,
                #   22, 23, 25, 26, 27, 28, 29, 30,

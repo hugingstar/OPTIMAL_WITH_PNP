@@ -216,33 +216,33 @@ class ACQUISITION():
 
 
 """Indoor data"""
-start ='2022-03-21'
-end = '2022-03-21'
-AnalysisObject = 'Optimal' # Optimal/VirtualSensor
+start ='2021-12-28'
+end = '2021-12-28'
+AnalysisObject = 'VirtualSensor' # Optimal/VirtualSensor
 
 """진리관"""
 # Indoor
+# cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
+# for i in [909, 910, 921, 920, 919, 917, 918, 911]:
+#     cooo.get_indoor_with_Fullsentences(out_unit=i)
+# cooo.CLOSE_DATABASE()
+
+# Outdoor
+# cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
+# for i in [909, 910, 921, 920, 919, 917, 918, 911]:
+#     cooo.get_outdoor_with_Fullsentences(out_unit=i)
+# cooo.CLOSE_DATABASE()
+
+
+"""디지털 도서관"""
+# Indoor
 cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
-for i in [909, 910, 921, 920, 919, 917, 918, 911]:
+for i in [3065, 3066, 3067, 3069]:
     cooo.get_indoor_with_Fullsentences(out_unit=i)
 cooo.CLOSE_DATABASE()
 
 # Outdoor
 cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
-for i in [909, 910, 921, 920, 919, 917, 918, 911]:
+for i in [3065, 3066, 3067, 3069]:
     cooo.get_outdoor_with_Fullsentences(out_unit=i)
 cooo.CLOSE_DATABASE()
-
-
-"""디지털 도서관"""
-# # Indoor
-# cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
-# for i in [3065, 3066, 3067, 3069]:
-#     cooo.get_indoor_with_Fullsentences(out_unit=i)
-# cooo.CLOSE_DATABASE()
-#
-# # Outdoor
-# cooo = ACQUISITION(start=start, end=end, AnalysisObject=AnalysisObject)
-# for i in [3065, 3066, 3067, 3069]:
-#     cooo.get_outdoor_with_Fullsentences(out_unit=i)
-# cooo.CLOSE_DATABASE()
