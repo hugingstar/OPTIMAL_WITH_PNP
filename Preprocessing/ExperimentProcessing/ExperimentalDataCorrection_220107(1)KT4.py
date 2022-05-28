@@ -281,7 +281,7 @@ class DataCorrection:
 
         ax1.set_ylim([0, 5])
         ax2.set_ylim([0, 60])
-        ax3.set_ylim([-10, 30])
+        ax3.set_ylim([-10, 20])
         ax4.set_ylim([0, 5000])
 
         ax1.autoscale(enable=True, axis='x', tight=True)

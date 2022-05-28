@@ -216,8 +216,8 @@ class ACQUISITION():
 
 
 """Indoor data"""
-start ='2022-01-07'
-end = '2022-01-07'
+start ='2022-01-06'
+end = '2022-01-06'
 AnalysisObject = 'VirtualSensor' # Optimal/VirtualSensor
 
 """진리관"""

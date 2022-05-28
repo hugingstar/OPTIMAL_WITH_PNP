@@ -221,7 +221,7 @@ class DataCorrection:
 
         # Inlet
         cd_col_list = []
-        for _ in [1, 2]:
+        for _ in [1, 2, 4, 10]:
             cd_col_list.append('point{}'.format(_))
             ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'k', alpha=0.2, linewidth='2', drawstyle='steps-post')
         avg_temp_list = solve[cd_col_list].mean(axis=1)
@@ -233,7 +233,7 @@ class DataCorrection:
 
         # Outlet
         cd_col_list = []
-        for _ in [21]:
+        for _ in [21, 22, 23, 24]:
             cd_col_list.append('point{}'.format(_))
             # 가장 큰 것 : 19
             ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'b', alpha=0.2, linewidth='2', drawstyle='steps-post')
@@ -279,7 +279,7 @@ class DataCorrection:
 
         ax1.set_ylim([0, 5])
         ax2.set_ylim([0, 60])
-        ax3.set_ylim([-10, 30])
+        ax3.set_ylim([-10, 20])
         ax4.set_ylim([0, 5000])
 
         ax1.autoscale(enable=True, axis='x', tight=True)
