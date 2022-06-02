@@ -178,9 +178,10 @@ class COMPRESSORMAPMODEL():
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '14:50:00'#'11:30:00' 14:50:00
-        et = '17:50:00'#'14:30:00' 17:50:00
-        self.gap = 12 # 60
+        st = '00:00:00'#'11:30:00'
+        et = '23:59:00'#'14:30:00'
+        self.gap = 60 # 60
+
         solve = self._outdata
         solve = solve[solve.index >= self.folder_name + ' ' + st]
         solve = solve[solve.index <= self.folder_name + ' ' + et]
@@ -456,7 +457,7 @@ class COMPRESSORMAPMODEL():
 
             # if (self._outdata[self.CompressorSignal[0]][num] == 0) and (self._outdata[self.CompressorSignal[1]][num] == 0):
             #     w_dot_pred = 0
-            self._outdata.at[self._outdata.index[num], "{}".format(self.VirtualPower)] = w_dot_pred
+            self._outdata.at[self._outdata.index[num], "{}".format(self.VirtualPower)] = w_dot_pred / 10
             self._outdata.at[self._outdata.index[num], "{}".format(self.RealPower)] = RealP[num] / 1000
             num += 1
 
@@ -711,9 +712,9 @@ class COMPRESSORMAPMODEL():
 
         ax1.set_ylabel('Power', fontsize=28)
 
-        ax1.set_yticks([0, 20, 40, 60])
+        # ax1.set_yticks([0, 20, 40, 60])
 
-        ax1.set_ylim([0, max(solve[self.RealPower].tolist()) * 2])
+        # ax1.set_ylim([0, max(solve[self.RealPower].tolist()) * 2])
 
         ax1.legend(['Real Power($kW$)', 'Virtual Power($kW$)'.format()], fontsize=22,  ncol=2, loc='upper right')
 
@@ -1122,8 +1123,8 @@ class COMPRESSORMAPMODEL():
             print('Error: creating directory. ' + directory)
 
 TIME = 'updated_time'
-start ='2022-01-24' #데이터 시작시간
-end = '2022-01-24' #데이터 끝시간
+start ='2021-12-29' #데이터 시작시간
+end = '2021-12-29' #데이터 끝시간
 
 freqValue = 'comp_current_frequency'
 PdisValue = 'high_pressure'
@@ -1143,7 +1144,7 @@ COMP_MODEL_NAME = 'GB066' # GB052, GB066, GB070, GB080
 
 VS = COMPRESSORMAPMODEL(COMP_MODEL_NAME=COMP_MODEL_NAME, TIME=TIME, start=start, end=end)
 
-for outdv in [3067]:
+for outdv in [3066]:
     VS.VSENSOR_PROCESSING(out_unit=outdv,freqValue=freqValue, PdisValue=PdisValue,
                           PsucValue=PsucValue,TsucValue=TsucValue, TdisValue=TdisValue,
                           TcondOutValue=TcondOutValue, TliqValue=TliqValue,

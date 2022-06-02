@@ -212,7 +212,7 @@ class ENSEMBLE():
                                             learning_rate=self.LEARNING_RATE, random_state=self.RANDOM_STATE)
             elif self.method == "Gradientboosting":
                 forest = GradientBoostingClassifier(learning_rate=self.LEARNING_RATE, n_estimators=self.N_ESTIMATION,
-                                                    max_depth=self.MAX_DEPTH, eval_metric='mlogloss')
+                                                    max_depth=self.MAX_DEPTH)
             elif self.method == "XGBoosting":
                 forest = XGBClassifier(learning_rate=self.LEARNING_RATE, n_estimators=self.N_ESTIMATION,
                                                     max_depth=self.MAX_DEPTH, max_features=self.MAX_FEATURES,

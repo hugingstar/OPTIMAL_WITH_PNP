@@ -171,7 +171,7 @@ class DataCorrection:
             print('Error: creating directory. ' + directory)
 
 TIME = 'updated_time'
-start = '2022-05-28'
-end = '2022-05-28'
+start = '2022-05-21'
+end = '2022-05-21'
 
 DC = DataCorrection(TIME=TIME, start=start, end=end)
