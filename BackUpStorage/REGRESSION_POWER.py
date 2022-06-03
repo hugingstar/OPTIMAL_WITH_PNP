@@ -72,7 +72,7 @@ class REGRESSION_SENSORS():
                       .format(epoch, nb_epochs, b.item(), W1.item(), W2.item(), cost.item()))
 
 # 경로
-path = 'D:/OPTIMAL/Data/VirtualSensor/CompressorMap_Power.csv'
+path = '/Data/VirtualSensor/CompressorMap_Power.csv'
 
 #시계열 컬럼 이름
 time = 'hz'

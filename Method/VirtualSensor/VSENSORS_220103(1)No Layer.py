@@ -276,7 +276,10 @@ class COMPRESSORMAPMODEL():
             c_p_air = CP.CoolProp.PropsSI('C', 'P', 101325, 'T', Toa[num] + 273.15, 'Air') / 1000 #1.0035
             rho_air = CP.CoolProp.PropsSI('D', 'P', 101325, 'T', Toa[num] + 273.15, 'Air')
 
-            h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
+            try:
+                h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
+            except ValueError:
+                h_dis = 0
             try:
                 h_condOut = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', TcondOut[num] + 273.15, 'R410A') / 1000
             except ValueError:
@@ -318,7 +321,12 @@ class COMPRESSORMAPMODEL():
         TcondOut = self._outdata[self.CondOutTemp].tolist()  # Double tube temp
         num = 0
         while num < self._outdata.shape[0]:
-            h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
+
+            try:
+                h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
+            except ValueError:
+                h_dis = 0
+
             try:
                 h_condOut = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', TcondOut[num] + 273.15, 'R410A') / 1000
             except ValueError:
@@ -387,7 +395,11 @@ class COMPRESSORMAPMODEL():
             f_real = (self._outdata[self.freq[0]][num] + self._outdata[self.freq[1]][num])/2
             """Baseline"""
             h_suc = CP.CoolProp.PropsSI('H', 'P', Low_p[num] * 100 * 1000, 'T', Tsuc[num] + 273.15, 'R410A') / 1000  # [kJ/kg]
-            h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', ((Tdis1[num] + Tdis2[num]) / 2) + 273.15, 'R410A') / 1000
+            try:
+                h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', ((Tdis1[num] + Tdis2[num]) / 2) + 273.15, 'R410A') / 1000
+            except ValueError:
+                h_dis = 0
+
             h_diff = h_dis - h_suc
 
             # 엔탈피 차이가 매우 작은 경우에는 꺼진 것과 다름 없기 때문에
@@ -1122,8 +1134,8 @@ class COMPRESSORMAPMODEL():
             print('Error: creating directory. ' + directory)
 
 TIME = 'updated_time'
-start ='2021-12-29' #데이터 시작시간
-end = '2021-12-29' #데이터 끝시간
+start ='2022-01-03' #데이터 시작시간
+end = '2022-01-03' #데이터 끝시간
 
 freqValue = 'comp_current_frequency'
 PdisValue = 'high_pressure'

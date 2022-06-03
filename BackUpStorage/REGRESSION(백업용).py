@@ -73,7 +73,7 @@ class REGRESSION_SENSORS():
                       .format(epoch, nb_epochs, b.item(), W1.item(), W2.item(), W3.item(), W4.item(), cost.item()))
 
 # 경로
-path = 'D:/OPTIMAL/Data/Optimal/2022-03-30/outdoor_909.csv'
+path = '/Data/Optimal/2022-03-30/Outdoor_909.csv'
 
 #시계열 컬럼 이름
 time = 'updated_time'

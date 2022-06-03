@@ -10,7 +10,7 @@ import CoolProp as CP
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, MaxAbsScaler
 
 class REGRESSION_SENSORS():
-    def __init__(self,COMP_MODEL_NAME, TIME, start, end):
+    def __init__(self,COMP_MODEL_NAME, freq_rated, TIME, start, end):
         """
         :param path: 데이터 파일 경로
         :param time: 시계열 인덱스 컬럼명
@@ -18,10 +18,11 @@ class REGRESSION_SENSORS():
         스케일러 작업 필요
         """
         "파일을 호출할 경로"
-        self.DATA_PATH = "D:/OPTIMAL/Data/ParameterTunning"
-        self.SAVE_PATH = "D:/OPTIMAL/Results"
+        self.DATA_PATH = "/Data/ParameterTunning"
+        self.SAVE_PATH = "/Results"
         self.TIME = TIME
         self.COMP_MODEL_NAME = COMP_MODEL_NAME
+        self.freq_rated = freq_rated
 
         self.jinli = {
             909 : [961, 999, 985, 1019, 1021, 1009, 939],
@@ -45,8 +46,6 @@ class REGRESSION_SENSORS():
                    3120, 3122, 3130]
         }
 
-        self.coefdict = {} #결과 저장
-
         #데이터 시작/끝 시간
         self.start = start
         self.end = end
@@ -62,7 +61,7 @@ class REGRESSION_SENSORS():
         self.folder_name = "{}-{}-{}".format(self.start_year, self.start_month, self.start_date)
         self.create_folder('{}/ParameterTunning'.format(self.SAVE_PATH))  # ParameterTunning 폴더를 생성
 
-    def PROCESSING(self, out_unit, X1, X2, target, TdisValue, TsucValue, freqValue, Method):
+    def PROCESSING(self, out_unit, X1, target, TdisValue, TsucValue, freqValue, Method):
         # 예측 대상
         self.target = target
         self.freq = freqValue
@@ -105,17 +104,15 @@ class REGRESSION_SENSORS():
 
         self.X1 = list(pd.Series(list(self._Mapdata.columns))[
                                     pd.Series(list(self._Mapdata.columns)).str.contains(pat=X1, case=False)])[0]
-        self.X2 = list(pd.Series(list(self._Mapdata.columns))[
-                                    pd.Series(list(self._Mapdata.columns)).str.contains(pat=X2, case=False)])[0]
-        print("X1 : {} - X2 : {}".format(self.X1, self.X2))
-        self.ParametersTunningRated(save=save, out_unit=out_unit)
 
-    def ParametersTunningRated(self, save, out_unit):
+        print("X1 : {}".format(self.X1))
+        self.ParametersTunning(save=save, out_unit=out_unit)
+
+    def ParametersTunning(self, save, out_unit):
         var1 = torch.Tensor(self._Mapdata[self.X1].tolist()).unsqueeze(1)
-        var2 = torch.Tensor(self._Mapdata[self.X2].tolist()).unsqueeze(1)
+        rated = torch.Tensor([self.freq_rated]).unsqueeze(1)
         dens = torch.Tensor(self._Mapdata[self.MapDensity].tolist()).unsqueeze(1)
         tar = torch.Tensor(self._Mapdata[self.target].tolist()).unsqueeze(1)
-        # tar_avg = sum(self._Mapdata[self.target].tolist())/len(self._Mapdata[self.target].tolist())
         tar_avg = torch.Tensor([sum(self._Mapdata[self.target].tolist())/len(self._Mapdata[self.target].tolist())]).unsqueeze(1)
 
         # print(tar_avg)
@@ -124,44 +121,26 @@ class REGRESSION_SENSORS():
         # print("{} - {}".format(self.MapDensity, list(dens)))
         # print("{} - {}".format(self.target, list(tar)))
 
-        b0 = torch.zeros(1, requires_grad=True)
-        W1 = torch.zeros(1, requires_grad=True)
-        W2 = torch.zeros(1, requires_grad=True)
-        W3 = torch.zeros(1, requires_grad=True)
-        W4 = torch.zeros(1, requires_grad=True)
-        W5 = torch.zeros(1, requires_grad=True)
-        W6 = torch.zeros(1, requires_grad=True)
-        W7 = torch.zeros(1, requires_grad=True)
-        W8 = torch.zeros(1, requires_grad=True)
-        W9 = torch.zeros(1, requires_grad=True)
-        W10 = torch.zeros(1, requires_grad=True)
+        b1 = torch.zeros(1, requires_grad=True)
+        b2 = torch.zeros(1, requires_grad=True)
+        b3 = torch.zeros(1, requires_grad=True)
 
         print("Optimizer : {}".format(self.Method))
         if self.Method == "Adam" :
-            optimizer = optim.Adam([b0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10], lr=0.01)
+            optimizer = optim.Adam([b1, b2, b3], lr=0.01)
         elif self.Method == "SGD":
-            optimizer = optim.SGD([b0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10], lr=0.01)
+            optimizer = optim.SGD([b1, b2, b3], lr=0.01)
         else:
-            optimizer = optim.Adam([b0, W1, W2, W3, W4, W5, W6, W7, W8, W9, W10], lr=0.01)
+            optimizer = optim.Adam([b1, b2, b3], lr=0.01)
 
         num = 0
         while True:
             #만들고 싶은 회귀식
-            hypothesis = dens * (b0
-                                 + W1 * var1
-                                 + W2 * var2
-                                 + W3 * var1**2
-                                 + W4 * var2**2
-                                 + W5 * var1**3
-                                 + W6 * var2**3
-                                 + W7 * var1 * var2
-                                 + W8 * var1 * var2**2
-                                 + W9 * var1**2 * var2
-                                 + W10 * var1**2 * var2**2)
-
+            hypothesis = dens * (
+)
             # Cost : RMSE
-            cost = torch.mean(pow(tar-hypothesis, 2))
-            cost = torch.sqrt(cost)/ tar_avg
+            cost = torch.mean(abs(tar - hypothesis)**2)
+            cost = torch.sqrt(cost) / tar_avg
 
             optimizer.zero_grad()
             cost.backward()
@@ -170,19 +149,25 @@ class REGRESSION_SENSORS():
             # 100번마다 로그 출력
             if num % 10000 == 0:
                 # 변수에 따라서 웨이트 값 출력 조정 필요
-                print('[Iteration {}] W0: {:.4f}, W1: {:.4f}, W2: {:.4f}, W3: {:.4f}, W4: {:.4f}, W5: {:.4f}, W6: {:.4f}, W7: {:.4f}, W8: {:.4f}, W9: {:.4f}, W10: {:.4f}, cost: {:.4f}'
-                    .format(num, b0.item(),  W1.item(), W2.item(), W3.item(), W4.item(), W5.item(), W6.item(), W7.item(), W8.item(), W9.item(), W10.item(), cost.item()))
+                pass
+                # print('[Iteration {}] W0: {:.4f}, W1: {:.4f}, W2: {:.4f}, W3: {:.4f}, W4: {:.4f}, W5: {:.4f}, W6: {:.4f}, W7: {:.4f}, W8: {:.4f}, W9: {:.4f}, W10: {:.4f}, cost: {:.4f}'
+                #     .format(num, b0.item(),  W1.item(), W2.item(), W3.item(), W4.item(), W5.item(), W6.item(), W7.item(), W8.item(), W9.item(), W10.item(), cost.item()))
             if cost.item() < 25:
                 print("Done!")
                 break
             num += 1
+        # self.coefdict = {
+        #     self.target : [b0.item(),  W1.item(), W2.item(), W3.item(), W4.item(), W5.item(), W6.item(), W7.item(), W8.item(), W9.item(), W10.item()]
+        # }
+        # df_coef = pd.DataFrame(self.coefdict)
+        # df_coef.to_csv("{}/ParameterRated_{}_{}.csv".format(save, self.target, out_unit))
+        #
+        # self.predperform = {
+        #     "CvRMSE": [cost.item()]
+        # }
+        # df_per = pd.DataFrame(self.predperform)
+        # df_per.to_csv("{}/CvRMSERated_{}_{}.csv".format(save, self.target, out_unit))
 
-        self.coefdict = {
-            self.target : [b0.item(),  W1.item(), W2.item(), W3.item(), W4.item(), W5.item(), W6.item(), W7.item(), W8.item(), W9.item(), W10.item()],
-            "CvRMSE" : [cost.item()]
-        }
-        df_coef = pd.DataFrame(self.coefdict)
-        df_coef.to_csv("{}/ParameterRated_{}_{}.csv".format(save, self.target, out_unit))
 
     def SuctionDensity(self):
         """
@@ -226,17 +211,25 @@ freqValue = 'frequency'
 TdisValue = 'discharge_temp'
 TsucValue = 'suction_temp'
 
+
 # 변수
-X1 = 'discharge_temp'
-X2 = 'suction_temp'
+X1 = 'frequency'
 TARGET = 'mass_flow_rate'
+freq_rated = 58
 
 #Optimizer
 METHOD = 'Adam' #SGD
 
 # 스케일러 옵션은 끄면 Pass된다.
-RVS = REGRESSION_SENSORS(COMP_MODEL_NAME=COMP_MODEL_NAME, TIME=TIME, start=start, end=end)
+RVS = REGRESSION_SENSORS(COMP_MODEL_NAME=COMP_MODEL_NAME,
+                         freq_rated=freq_rated,
+                         TIME=TIME,
+                         start=start,
+                         end=end)
 
 for outdv in [3066]:
-    RVS.PROCESSING(out_unit=outdv, X1=X1, X2=X2, target=TARGET,
-                   TsucValue=TsucValue, TdisValue=TdisValue, freqValue=freqValue, Method=METHOD)
+    RVS.PROCESSING(out_unit=outdv, X1=X1, target=TARGET,
+                   TsucValue=TsucValue,
+                   TdisValue=TdisValue,
+                   freqValue=freqValue,
+                   Method=METHOD)

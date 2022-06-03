@@ -51,7 +51,7 @@ class COMPRESSORMAPMODEL():
             "GB066":
                 {"Mdot_rated": [1.91778583E+0, 3.28857174E+0, 1.84065620E-1, 7.14011551E-5, 2.10278731E+1,
                                 -3.92042237E-1, 2.38168548E-3, 3.65647991E-1, -3.43302726E-3, -5.06182999E-4, -1.49453769E-13],
-                 "Mdot_pred": [9.90958566E-1 , 1.66658435E-2, -1.91782998E-5],
+                 "Mdot_pred": [9.90958566E-1, 1.66658435E-2, -1.91782998E-5],
                  "Wdot_rated": [4.68221681E+0, 2.89315135E+1, 5.08822631E-1, -2.52904377E-6, 3.72538174E+1,
                                 2.52480352E+0, -1.98829304E-2, -6.79818927E-1, 1.96893378E-3, -3.26935360E-3, -2.85508042E-12],
                  "Wdot_pred": [6.5629020e-02, 1.3365647e-03, 3.4921488e-06]},
@@ -89,8 +89,7 @@ class COMPRESSORMAPMODEL():
         self.create_folder('{}/VirtualSensor'.format(self.SAVE_PATH))  # Deepmodel 폴더를 생성
 
     def VSENSOR_PROCESSING(self, out_unit, freqValue, PdisValue, PsucValue, TsucValue,
-                           TdisValue, TcondOutValue, TliqValue, TAirinValue, TAiroutValue,
-                           ToaValue, VAiroutValue, CompSignal, target):
+                           TdisValue, TcondOutValue, TliqValue, TAirinValue, TAiroutValue, ToaValue, VAiroutValue, CompSignal, target):
         # 예측 대상
         self.target = target
 
@@ -178,9 +177,9 @@ class COMPRESSORMAPMODEL():
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '00:00:00'#'11:30:00'
-        et = '23:59:00'#'14:30:00'
-        self.gap = 60 # 60
+        st = '00:00:00'# 14:50:00
+        et = '23:59:00'# 17:50:00
+        self.gap = 60
 
         solve = self._outdata
         solve = solve[solve.index >= self.folder_name + ' ' + st]
@@ -196,7 +195,8 @@ class COMPRESSORMAPMODEL():
 
         """biot Data with Virtual Power Sensor"""
         self.PlottingSystem(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
-        self.PlottingMeasurement(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
+        self.PlottingMeasurement(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save,
+                                out_unit=out_unit)
         self.PlottingVirtualPowerSensor(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
         self.PlottingVirtualPowerSensorAccuracy(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
         self.PlottingPerformanceSensor(plt_ST=self.folder_name + ' ' + st, plt_ET=self.folder_name + ' ' + et, save=save, out_unit=out_unit)
@@ -275,8 +275,10 @@ class COMPRESSORMAPMODEL():
         while num < self._outdata.shape[0]:
             c_p_air = CP.CoolProp.PropsSI('C', 'P', 101325, 'T', Toa[num] + 273.15, 'Air') / 1000 #1.0035
             rho_air = CP.CoolProp.PropsSI('D', 'P', 101325, 'T', Toa[num] + 273.15, 'Air')
-
-            h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
+            try:
+                h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
+            except ValueError:
+                h_dis = 0
             try:
                 h_condOut = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', TcondOut[num] + 273.15, 'R410A') / 1000
             except ValueError:
@@ -318,7 +320,10 @@ class COMPRESSORMAPMODEL():
         TcondOut = self._outdata[self.CondOutTemp].tolist()  # Double tube temp
         num = 0
         while num < self._outdata.shape[0]:
-            h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
+            try:
+                h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
+            except ValueError:
+                h_dis = 0
             try:
                 h_condOut = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', TcondOut[num] + 273.15, 'R410A') / 1000
             except ValueError:
@@ -349,7 +354,10 @@ class COMPRESSORMAPMODEL():
         num = 0
         h_evapIn_prev = 0
         while num < self._outdata.shape[0]:
-            h_suc = CP.CoolProp.PropsSI('H', 'P', Low_p[num] * 100 * 1000, 'T', Tsuc[num] + 273.15, 'R410A') / 1000 #[kJ/kg]
+            try:
+                h_suc = CP.CoolProp.PropsSI('H', 'P', Low_p[num] * 100 * 1000, 'T', Tsuc[num] + 273.15, 'R410A') / 1000 #[kJ/kg]
+            except ValueError:
+                h_suc = 0
 
             try:
                 h_condOut = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', TcondOut[num] + 273.15,'R410A') / 1000
@@ -386,8 +394,14 @@ class COMPRESSORMAPMODEL():
             #Virtual Mass Flow
             f_real = (self._outdata[self.freq[0]][num] + self._outdata[self.freq[1]][num])/2
             """Baseline"""
-            h_suc = CP.CoolProp.PropsSI('H', 'P', Low_p[num] * 100 * 1000, 'T', Tsuc[num] + 273.15, 'R410A') / 1000  # [kJ/kg]
-            h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', ((Tdis1[num] + Tdis2[num]) / 2) + 273.15, 'R410A') / 1000
+            try:
+                h_suc = CP.CoolProp.PropsSI('H', 'P', Low_p[num] * 100 * 1000, 'T', Tsuc[num] + 273.15, 'R410A') / 1000  # [kJ/kg]
+            except ValueError:
+                h_suc = 0
+            try:
+                h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', ((Tdis1[num] + Tdis2[num]) / 2) + 273.15, 'R410A') / 1000
+            except ValueError:
+                h_dis = 0
             h_diff = h_dis - h_suc
 
             # 엔탈피 차이가 매우 작은 경우에는 꺼진 것과 다름 없기 때문에
@@ -494,8 +508,11 @@ class COMPRESSORMAPMODEL():
         self.MapDensity = self.DischargePressure.replace(PdisValue, 'density') # 컬럼이름을 바꾼것
         num = 0
         while num < self._outdata.shape[0]:
-            self._outdata.at[self._outdata.index[num], "{}".format(self.MapDensity)] \
-                = CP.CoolProp.PropsSI('D', 'P', self._outdata[self.SuctionPressure][num] * 100 * 1000, 'T', self._outdata[self.SuctionTemp[0]][num] + 273.15, 'R410A')
+            try:
+                dens = CP.CoolProp.PropsSI('D', 'P', self._outdata[self.SuctionPressure][num] * 100 * 1000, 'T', self._outdata[self.SuctionTemp[0]][num] + 273.15, 'R410A')
+            except ValueError:
+                dens = 0
+            self._outdata.at[self._outdata.index[num], "{}".format(self.MapDensity)] = dens
             num += 1
 
     """ Prediction Performance"""
@@ -654,11 +671,11 @@ class COMPRESSORMAPMODEL():
         ax2.set_ylabel('Volume Flow Rate', fontsize=28)
         ax3.set_ylabel('Mass Flow Rate', fontsize=28)
 
-        ax1.set_yticks([0, 5, 10, 15, 20, 25, 30])
+        ax1.set_yticks([-10, -5, 0, 5, 10, 15, 20, 25, 30])
         # ax2.set_yticks([0, 40, 80, 120, 160, 200])
         # ax3.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
 
-        ax1.set_ylim([0, 20])
+        ax1.set_ylim([-5, 20])
         # ax2.set_ylim([0, 200])
         # ax3.set_ylim([0, 0.8])
 
@@ -711,9 +728,9 @@ class COMPRESSORMAPMODEL():
 
         ax1.set_ylabel('Power', fontsize=28)
 
-        # ax1.set_yticks([0, 20, 40, 60])
+        ax1.set_yticks([0, 20, 40, 60])
 
-        # ax1.set_ylim([0, max(solve[self.RealPower].tolist()) * 2])
+        ax1.set_ylim([0, max(solve[self.RealPower].tolist()) * 2])
 
         ax1.legend(['Real Power($kW$)', 'Virtual Power($kW$)'.format()], fontsize=22,  ncol=2, loc='upper right')
 
@@ -871,7 +888,6 @@ class COMPRESSORMAPMODEL():
             k = str(tt0[i])[8:16]
             tt.append(k)
 
-        #작동중인 데이터만 사용해서 정확도 계산을 위한 데이터만 남김
         tem = solve[(solve[self.CompressorSignal[0]] == 1) | (solve[self.CompressorSignal[1]] == 1)]
         tem.to_csv("{}/ACCData_Outdoor_{}.csv".format(save, out_unit))
 
@@ -935,6 +951,7 @@ class COMPRESSORMAPMODEL():
         else:
             Tdis = [statistics.mean(solve[self.DischargeTemp[0]].tolist())]
         Tsuc = [statistics.mean(solve[self.SuctionTemp[0]].tolist())]
+        print("High Pressure : {} - Low Pressure : {} - Discharge Temp : {} - Suction Temp : {}".format(High_p, Low_p, Tdis, Tsuc))
 
         dicc = {"High Pressure": High_p, "Low Pressure": Low_p, "Discharge Temperature": Tdis,
                 "Suction Temperature": Tsuc, "Condenser Outlet Temperature": TcondOut, "Evaporator Inlet Temperature": TevapIn}
@@ -1030,6 +1047,7 @@ class COMPRESSORMAPMODEL():
 
         dicc = {"High Pressure" : High_p, "Low Pressure": Low_p, "Discharge Temperature" : Tdis, "Suction Temperature" : Tsuc, "Condenser Outlet Temperature" : TcondOut}
         self.df_cycle = pd.DataFrame(dicc, index=solve.index)
+        # print("High Pressure : {} - Low Pressure : {} - Discharge Temp : {} - Suction Temp : {}".format(High_p, Low_p, Tdis, Tsuc))
 
         num = 0
         while num == 0:
@@ -1040,6 +1058,7 @@ class COMPRESSORMAPMODEL():
             self.df_cycle['h_suc'] = h_suc
             c_p = CP.CoolProp.PropsSI('C', 'P', Low_p[num] * 100 * 1000, 'Q', 1, 'R410A') / 1000
             self.df_cycle['c_p_low'] = c_p
+
             self.SuperHeat = (h_suc - h_sat_vap) / c_p
             self.df_cycle['SuperHeat'] = self.SuperHeat
 
@@ -1096,8 +1115,8 @@ class COMPRESSORMAPMODEL():
             plt.scatter(h_dis, High_p[num] * 100, marker='o', color='r', alpha=0.8)
             plt.scatter(h_dis_sat, High_p[num] * 100, marker='o', color='g', alpha=0.8)
             plt.scatter(h_sat_liq, High_p[num] * 100, marker='o', color='g', alpha=0.8)
-            plt.scatter(h_condOut, High_p[num] * 100, marker='o', color='r', alpha=0.8)
-            plt.scatter(h_evapIn, Low_p[num] * 100, marker='o', color='r', alpha=0.8)
+            plt.scatter(h_condOut, High_p[num] * 100, marker='o', color='r', alpha= 0.8)
+            plt.scatter(h_evapIn, Low_p[num] * 100, marker='o', color='r', alpha= 0.8)
 
             plt.grid()
             plt.tight_layout()
@@ -1121,9 +1140,10 @@ class COMPRESSORMAPMODEL():
         except OSError:
             print('Error: creating directory. ' + directory)
 
+
 TIME = 'updated_time'
-start ='2021-12-29' #데이터 시작시간
-end = '2021-12-29' #데이터 끝시간
+start ='2022-01-07' #데이터 시작시간
+end = '2022-01-07' #데이터 끝시간
 
 freqValue = 'comp_current_frequency'
 PdisValue = 'high_pressure'
