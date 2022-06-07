@@ -178,9 +178,9 @@ class COMPRESSORMAPMODEL():
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '11:30:00'#'11:30:00'
-        et = '14:30:00'#'14:30:00'
-        self.gap = 12 # 60
+        st = '00:00:00'#'11:30:00'
+        et = '23:59:00'#'14:30:00'
+        self.gap = 60 # 60
 
         solve = self._outdata
         solve = solve[solve.index >= self.folder_name + ' ' + st]
