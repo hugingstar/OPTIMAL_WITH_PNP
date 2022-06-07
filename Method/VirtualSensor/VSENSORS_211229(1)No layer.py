@@ -412,6 +412,7 @@ class COMPRESSORMAPMODEL():
                                 + self.coef_mdotpred[2] * pow((f_real - self.RatedFrequency), 2))
             else:
                 m_dot_pred = 0
+                m_dot_pred = 0
             # 정방향
             if m_dot_pred <= 0:
                 m_dot_pred = 0

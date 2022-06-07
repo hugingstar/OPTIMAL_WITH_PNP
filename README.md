@@ -45,8 +45,10 @@
 #### 4-3. ParameterTuning
   * ExperimentalDataCorrection_for_ParaTuning.py
     * 파라미터 튜닝에 사용할 데이터 전처리
-  * PARATUNING.v1_comp.py
+  * PARATUNING_v1_comp.py
     * Update(22.06.08) : 가상센서 모델 파라미터 튜닝 
+  * PARATUNING_v2_comp.py
+    * Update(22.06.08) : VPC sensor
   
 #### 4-4. VirtualSensor
   * VSENSORS.py : 실외기 데이터를 사용한 가상센서 버전 1
