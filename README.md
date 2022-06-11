@@ -49,6 +49,7 @@
     * Update(22.06.08) : 가상센서 모델 파라미터 튜닝 
   * PARATUNING_v2_comp.py
     * Update(22.06.08) : VPC sensor
+    * Update(22.06.11) : VPC sensor test 및 고장이 발생한 날과 정상인 날의 비교 시각화 (컴프레서 넘버는 반복문 돌릴때 설정)
   
 #### 4-4. VirtualSensor
   * VSENSORS.py : 실외기 데이터를 사용한 가상센서 버전 1
