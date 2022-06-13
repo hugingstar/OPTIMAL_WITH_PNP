@@ -36,7 +36,7 @@ class REGRESSION_SENSORS():
             919 : [984, 988, 993, 950, 976, 956],
             917 : [971, 955, 1002, 1023, 1016, 922, 934],
             918 : [963, 986, 996, 1012, 1024, 1015, 943, 966],
-            911 : [970, 974, 931, 948, 1014, 930, 968],
+            911 : [970, 974, 931, 948, 1014, 930, 968]
         }
 
         """디지털 도서관 정보"""
@@ -49,6 +49,27 @@ class REGRESSION_SENSORS():
             3067 : [3075, 3079, 3080, 3088, 3094, 3101, 3111, 3114, 3115, 3119,
                    3120, 3122, 3130]
         }
+
+
+        self.exp_3065 = {"Normal": ['2022-01-10', '2022-01-20'],
+                           "KT2": ['2022-01-20'],
+                           "KT3": ['2022-01-21'],
+                           "KT4": []}
+
+        self.exp_3066 = {"Normal": ['2021-12-28', '2021-12-29', '2022-01-03'],
+                           "KT2": ['2022-01-04', '2022-01-05'],
+                           "KT3": ['2022-01-06'],
+                           "KT4": ['2022-01-07']}
+
+        self.exp_3067 = {"Normal": ['2022-01-24'],
+                           "KT2": ['2022-01-24'],
+                           "KT3": ['2022-01-26'],
+                           "KT4": ['2022-01-26']}
+
+        self.exp_3069 = {"Normal": ['2022-01-17'],
+                           "KT2": ['2022-01-18'],
+                           "KT3": ['2022-01-19'],
+                           "KT4": ['2022-01-19']}
 
         #데이터 시작/끝 시간
         self.start = start
@@ -97,6 +118,7 @@ class REGRESSION_SENSORS():
 
         self._OutUnitData['comp_frequency_sum'] = self._OutUnitData[self.Compfreq[0]] + self._OutUnitData[self.Compfreq[1]]
         self._OutUnitData['discharge_temp_avg'] = (self._OutUnitData[self.DischargeTemp[0]] + self._OutUnitData[self.DischargeTemp[1]]) / 2
+
 
         save = "{}/ParameterTuning/{}/{}".format(self.SAVE_PATH, self.folder_name, out_unit)
         self.create_folder(save)
@@ -150,6 +172,15 @@ class REGRESSION_SENSORS():
                                 Freqcoef=self.kpTuned_coef,
                                 save=save,
                                 out_unit=out_unit)
+        #ParaTuneAlpha
+        self.alphaTuned_coef = self.ParaTuneAlpha(data=self.OutIntegData,
+                                                  save=save,
+                                                  out_unit=out_unit)
+
+        self.VirtualMassFlowSensor(data=self.OutIntegData,
+                                   Alphacoef = self.alphaTuned_coef,
+                                   save= save,
+                                   out_unit=out_unit)
 
     def ParaTuneRating(self, data, save, out_unit):
         """독립변수"""
@@ -278,8 +309,8 @@ class REGRESSION_SENSORS():
         self.OutRatedData.to_csv("{}/RatedFreq_Comp{}_Outdoor_{}.csv".format(save, self.comp_num, out_unit))
 
         # 테스트용 데이터에도 정보 추가
-        self.OutIntegData[self.ratTemp] = dens_rat
-        self.OutIntegData[self.ratPress] = dens_rat
+        self.OutIntegData[self.ratTemp] = rated_temp
+        self.OutIntegData[self.ratPress] = rated_press
         self.OutIntegData[self.ratDensity] = dens_rat
         self.OutIntegData[self.DensRatio] = self.OutIntegData[self.SuctionDensity] / self.OutIntegData[self.ratDensity]
 
@@ -345,11 +376,10 @@ class REGRESSION_SENSORS():
         self.powerRated = 'power_rated'
 
         #ParaTuneRated test
-
         test_data.reset_index(inplace=True, drop=True)
         num = 0
         while num < test_data.shape[0]:
-            hypothesis = test_data['power_rating'][num] * (1 + coef[0] * (test_data[self.DensRatio][num] - 1))
+            hypothesis = test_data['power_rating'][num] * (1 + coef[0] * (test_data[self.DensRatio][num] - 1)) #Rated
             k_p = test_data[self.target[0]][num] / hypothesis
 
             test_data.at[test_data.index[num], "{}".format(self.powerRated)] = hypothesis
@@ -366,7 +396,7 @@ class REGRESSION_SENSORS():
             var1 = torch.Tensor(test_data[X1_].tolist()).unsqueeze(1)
         elif self.comp_num == 3:
             X1_ = 'comp_frequency_sum'  # comp1 + comp2
-            var1 = torch.Tensor(test_data   [X1_].tolist()).unsqueeze(1)
+            var1 = torch.Tensor(test_data[X1_].tolist()).unsqueeze(1)
 
         """종속변수, 타겟 값"""
         TARGET_ = self.kpValue #!!! 확인하기
@@ -376,7 +406,7 @@ class REGRESSION_SENSORS():
         W2 = torch.zeros(1, requires_grad=True)
         W3 = torch.zeros(1, requires_grad=True)
 
-        if self.Method == "Adam" :
+        if self.Method == "Adam":
             optimizer = optim.Adam([W1, W2, W3], lr=0.001)
         elif self.Method == "RMSprop":
             optimizer = optim.RMSprop([W1, W2, W3], lr=0.001)
@@ -436,45 +466,289 @@ class REGRESSION_SENSORS():
             xValue = self.Compfreq[1]  # comp2
         elif self.comp_num == 3:
             xValue = 'comp_frequency_sum'  # comp1 + comp2
+
         num = 0
         while num < data.shape[0]:
             hypothesis = (Freqcoef[0]
                           + Freqcoef[1] * (data[xValue][num] - self.freq_rated)
                           + Freqcoef[2] * pow((data[xValue][num] - self.freq_rated), 2)) * data[self.powerRated][num]
-
             data.at[data.index[num], "{}".format(self.VirtualPower)] = hypothesis
             num += 1
         data.to_csv("{}/VirtualPowerSensorTest_Comp{}_Outdoor_{}.csv".format(save, self.comp_num, out_unit))
-
         self.PlottingRealAndVirtual(data=data, save=save, out_unit=out_unit)
+        self.OutIntegData = data
 
-    def PlottingRealAndVirtual(self, data, save, out_unit):
+    def ParaTuneAlpha(self, data, save, out_unit):
+        self.EnthalpySuction = 'suction_enthalpy'
+        self.EnthalpyDischarge = 'discharge_enthalpy'
+        self.MFR_REAL = 'mass_flow_rate_real'
+        self.alpha_train = 'alpha_train'
+        print("!!!!")
+        print(data)
+
+        num = 0
+        dens_Suction_prev = 0
+        while num < data.shape[0]:
+            try:
+                enthalpy_suc = CP.CoolProp.PropsSI('D', 'P', data[self.SuctionPressure[0]][num] * 100 * 1000, 'T', data[self.SuctionTemp[0]][num] + 273.15, 'R410A')
+            except ValueError:
+                enthalpy_suc = 0
+
+            try:
+                enthalpy_dis = CP.CoolProp.PropsSI('D', 'P', data[self.DischargePressure[0]][num] * 100 * 1000, 'T', data['discharge_temp_avg'][num] + 273.15, 'R410A')
+            except ValueError:
+                enthalpy_dis = 0
+            try:
+                mfr_real = abs(data[self.target[0]][num] / (enthalpy_dis - enthalpy_suc))
+            except ZeroDivisionError:
+                mfr_real = 0
+
+            data.at[data.index[num], "{}".format(self.EnthalpySuction)] = enthalpy_suc
+            data.at[data.index[num], "{}".format(self.EnthalpyDischarge)] = enthalpy_dis
+            data.at[data.index[num], "{}".format(self.MFR_REAL)] = mfr_real
+            data.at[data.index[num], "{}".format(self.alpha_train)] = 1 - (mfr_real * (enthalpy_dis -  enthalpy_suc))/(data[self.target[0]][num])
+            num += 1
+        self.OutIntegData = data
+        data.to_csv("{}/Alpha_Comp{}_Outdoor_{}.csv".format(save, self.comp_num, out_unit))
+
+        #Alpha loss training
+        X1_ = self.DischargePressure[0] #Discharge Pressure
+        var1 = torch.Tensor(data[X1_].tolist()).unsqueeze(1)
+        X2_ = self.SuctionPressure[0]  # Suction Pressure
+        var2 = torch.Tensor(data[X2_].tolist()).unsqueeze(1)
+        X3_ = 'discharge_temp_avg'  # Discharge temperature
+        var3 = torch.Tensor(data[X3_].tolist()).unsqueeze(1)
+        X4_ = self.SuctionTemp[0]  # comp1
+        var4 = torch.Tensor(data[X4_].tolist()).unsqueeze(1)
+        if self.comp_num == 1:
+            X5_ = self.Compfreq[0]  # comp1
+            var5 = torch.Tensor(data[X5_].tolist()).unsqueeze(1)
+
+        elif self.comp_num == 2:
+            X5_ = self.Compfreq[1]  # comp2
+            var5 = torch.Tensor(data[X5_].tolist()).unsqueeze(1)
+        elif self.comp_num == 3:
+            X5_ = 'comp_frequency_sum'  # comp1 + comp2
+            var5 = torch.Tensor(data[X5_].tolist()).unsqueeze(1)
+
+        """종속변수, 타겟 값"""
+        TARGET_ = self.alpha_train #!!! 확인하기
+        tar = torch.Tensor(data[TARGET_].tolist()).unsqueeze(1)
+
+        W1 = torch.zeros(1, requires_grad=True)
+        W2 = torch.zeros(1, requires_grad=True)
+        W3 = torch.zeros(1, requires_grad=True)
+        W4 = torch.zeros(1, requires_grad=True)
+        W5 = torch.zeros(1, requires_grad=True)
+        W6 = torch.zeros(1, requires_grad=True)
+
+        if self.Method == "Adam" :
+            optimizer = optim.Adam([W1, W2, W3, W4, W5, W6], lr=0.001)
+        elif self.Method == "RMSprop":
+            optimizer = optim.RMSprop([W1, W2, W3, W4, W5, W6], lr=0.001)
+        elif self.Method == "SGD":
+            optimizer = optim.SGD([W1, W2, W3, W4, W5, W6], lr=0.001)
+        else:
+            optimizer = optim.Adam([W1, W2, W3, W4, W5, W6], lr=0.001)
+
+        num = 0
+        while True:
+            # 만들고 싶은 회귀식
+            hypothesis = (W1
+                          + W2 * var1
+                          + W3 * var2
+                          + W4 * var3
+                          + W5 * var4
+                          + W6 * var5)
+
+            # Cost : Cv(RMSE)
+            cost = torch.mean(pow(hypothesis - tar, 2))  # MSE
+            cost = 100 * torch.sqrt(cost) / torch.mean(tar)
+
+            optimizer.zero_grad()
+            cost.backward()
+            optimizer.step()
+
+            # 100번마다 로그 출력
+            if num % 5000 == 0:
+                # 변수에 따라서 웨이트 값 출력 조정 필요
+                print(
+                    '[Iteration : {} / Cost : {:.4f}] W1: {:.4f}, W2: {:.4f}, W3: {:.4f}'
+                    .format(num, cost.item(), W1.item(), W2.item(), W3.item()))
+            if num > self.TrainIter:
+                print("Done!")
+                acc = round(cost.item(), 2)
+                df_performfreq = pd.DataFrame()
+                df_performfreq.loc[0, "Cv(RMSE)"] = acc
+                df_performfreq.to_csv("{}/CvRMSE(Alpha)_Comp{}_Outdoor_{}.csv".format(save, self.comp_num, out_unit))
+                break
+            num += 1
+        coef_list = [W1.item(), W2.item(), W3.item(), W4.item(), W5.item(), W6.item()]
+        df_coefalpha = pd.DataFrame()
+        df_coefalpha["Weight"] = coef_list
+        df_coefalpha.to_csv("{}/Coefficient(Alpha)_Comp{}_Outdoor_{}.csv".format(save, self.comp_num, out_unit))
+        return coef_list
+
+    def VirtualMassFlowSensor(self, data, Alphacoef, save, out_unit):
+        print("Alpha coefficients : {}".format(Alphacoef))
+        self.alpha = 'alphaValue'
+        self.VirtualMassFlow = 'virtual_mass_flow_rate'
+
+        data.reset_index(inplace=True, drop=True)
+
+        #Alpha loss training
+        X1_ = self.DischargePressure[0] #Discharge Pressure
+        X2_ = self.SuctionPressure[0]  # Suction Pressure
+        X3_ = 'discharge_temp_avg'  # Discharge temperature
+        X4_ = self.SuctionTemp[0]  # comp1
+        if self.comp_num == 1:
+            X5_ = self.Compfreq[0]  # comp1
+        elif self.comp_num == 2:
+            X5_ = self.Compfreq[1]  # comp2
+        elif self.comp_num == 3:
+            X5_ = 'comp_frequency_sum'  # comp1 + comp2
+
+        num = 0
+        while num < data.shape[0]:
+            hypo_alpha = (Alphacoef[0]
+                          + Alphacoef[1] * data[X1_][num]
+                          + Alphacoef[2] * data[X2_][num]
+                          + Alphacoef[3] * data[X3_][num]
+                          + Alphacoef[4] * data[X4_][num]
+                          + Alphacoef[5] * data[X5_][num])
+
+            hypothesis = ((data[self.VirtualPower][num] * (1 - hypo_alpha))
+                          / (data[self.EnthalpyDischarge][num] - data[self.EnthalpySuction][num]))
+
+            data.at[data.index[num], "{}".format(self.alpha)] = hypo_alpha
+            data.at[data.index[num], "{}".format(self.VirtualMassFlow)] = abs(hypothesis)
+            num += 1
+        data.to_csv("{}/VirtualMassFlowSensorTest_Comp{}_Outdoor_{}.csv".format(save, self.comp_num, out_unit))
+        self.PlottingRealAndVirtualMFR(data=data, save=save, out_unit=out_unit)
+        self.OutIntegData = data
+
+    def PlottingRealAndVirtualMFR(self, data, save, out_unit):
         plt.rcParams["font.family"] = "Times New Roman"
         solve = data.dropna()
-        print(solve)
-
-        Fault1DateList = ['2022-']
-        Fault2DateList = []
-        Fault3DateList = []
-
+        solve.set_index(['updated_time'], inplace=True)
 
         fig = plt.figure(figsize=(20, 20))
         ax1 = fig.add_subplot(1, 1, 1)
 
+        if out_unit == 3066:
+            ax1.set_title('Outdoor unit : {}'.format(out_unit), fontsize=65)
+            ax1.set_xticks([0, 20, 40, 60, 80, 100, 120, 160, 200])
+            ax1.set_yticks([0, 20, 40, 60, 80, 100, 120, 160, 200])
+            ax1.set_xlim([0, 120])
+            ax1.set_ylim([0, 120])
+
+        elif out_unit == 3067:
+            ax1.set_title('Outdoor unit : {}'.format(out_unit), fontsize=65)
+            ax1.set_xticks([0, 200, 400, 600, 800, 1000, 1200, 1600, 2000])
+            ax1.set_yticks([0, 200, 400, 600, 800, 1000, 1200, 1600, 2000])
+            ax1.set_xlim([0, 1200])
+            ax1.set_ylim([0, 1200])
+
+        elif out_unit == 3069:
+            ax1.set_title('Outdoor unit : {}'.format(out_unit), fontsize=65)
+            ax1.set_xticks([0, 200, 400, 600, 800, 1000, 1200, 1600, 2000])
+            ax1.set_yticks([0, 200, 400, 600, 800, 1000, 1200, 1600, 2000])
+            ax1.set_xlim([0, 1200])
+            ax1.set_ylim([0, 1200])
+
+        elif out_unit == 3065:
+            ax1.set_title('Outdoor unit : {}'.format(out_unit), fontsize=65)
+            ax1.set_xticks([0, 200, 400, 600, 800, 1000, 1200, 1600, 2000])
+            ax1.set_yticks([0, 200, 400, 600, 800, 1000, 1200, 1600, 2000])
+            ax1.set_xlim([0, 1200])
+            ax1.set_ylim([0, 1200])
+
+
         if self.comp_num == 1:
-            ax1.scatter(solve[self.target[0]], solve[self.VirtualPower], s=80, alpha=0.5, color='steelblue')
-
-
-
+            ax1.scatter(solve[self.MFR_REAL], solve[self.VirtualMassFlow], s=80, alpha=0.5, color='steelblue')
             ax1.legend(['Compressor 1\n(Rated frequency : {} ($Hz$))'.format(self.freq_rated)], fontsize=47, ncol=1, loc='upper right')
+
+            ax1.tick_params(axis="x", labelsize=60)
+            ax1.tick_params(axis="y", labelsize=60)
+            ax1.set_xlabel('Real mass flow rate($kg/s$)', fontsize=65)
+            ax1.set_ylabel('Virtual mass flow rate($kg/s$)', fontsize=65)
+            ax1.grid()
+            plt.tight_layout()
+            plt.savefig("{}/freq1_MassFlow_Outdoor_{}.png".format(save, out_unit))
+            # plt.show()
+            plt.clf()
+        elif self.comp_num == 2:
+            ax1.scatter(solve[self.MFR_REAL], solve[self.VirtualMassFlow], s=80, alpha=0.5, color='cornflowerblue')
+            ax1.legend(['Compressor 2\n(Rated frequency : {} ($Hz$))'.format(self.freq_rated)], fontsize=47, ncol=1, loc='upper right')
+
+            ax1.tick_params(axis="x", labelsize=60)
+            ax1.tick_params(axis="y", labelsize=60)
+            ax1.set_xlabel('Real mass flow rate($kg/s$)', fontsize=65)
+            ax1.set_ylabel('Virtual mass flow rate($kg/s$)', fontsize=65)
+            ax1.grid()
+            plt.tight_layout()
+            plt.savefig("{}/freq2_MassFlow_Outdoor_{}.png".format(save, out_unit))
+            # plt.show()
+            plt.clf()
+        elif self.comp_num == 3:
+            ax1.scatter(solve[self.MFR_REAL], solve[self.VirtualMassFlow], s=80, alpha=0.5, color='royalblue')
+            ax1.legend(['Compressor 1 + 2\n(Rated frequency : {} ($Hz$))'.format(self.freq_rated)], fontsize=47, ncol=1, loc='upper right')
+
+            ax1.tick_params(axis="x", labelsize=60)
+            ax1.tick_params(axis="y", labelsize=60)
+            ax1.set_xlabel('Real mass flow rate($kg/s$)', fontsize=65)
+            ax1.set_ylabel('Virtual mass flow rate($kg/s$)', fontsize=65)
+            ax1.grid()
+            plt.tight_layout()
+            plt.savefig("{}/freq3_MassFlow_Outdoor_{}.png".format(save, out_unit))
+            # plt.show()
+            plt.clf()
+
+    def PlottingRealAndVirtual(self, data, save, out_unit):
+        plt.rcParams["font.family"] = "Times New Roman"
+        solve = data.dropna()
+        solve.set_index(['updated_time'], inplace=True)
+        print(solve)
+
+        fig = plt.figure(figsize=(20, 20))
+        ax1 = fig.add_subplot(1, 1, 1)
+
+        if out_unit == 3066:
+            ax1.set_title('Outdoor unit : {}'.format(out_unit), fontsize=65)
             ax1.set_xticks([0, 5000, 10000, 15000, 20000])
             ax1.set_yticks([0, 5000, 10000, 15000, 20000])
             ax1.set_xlim([0, 15000])
             ax1.set_ylim([0, 15000])
+
+        elif out_unit == 3067:
+            ax1.set_title('Outdoor unit : {}'.format(out_unit), fontsize=65)
+            ax1.set_xticks([0, 20000, 40000, 60000, 80000, 100000])
+            ax1.set_yticks([0, 20000, 40000, 60000, 80000, 100000])
+            ax1.set_xlim([0, 80000])
+            ax1.set_ylim([0, 80000])
+
+        elif out_unit == 3069:
+            ax1.set_title('Outdoor unit : {}'.format(out_unit), fontsize=65)
+            ax1.set_xticks([0, 20000, 40000, 60000, 80000, 100000])
+            ax1.set_yticks([0, 20000, 40000, 60000, 80000, 100000])
+            ax1.set_xlim([0, 60000])
+            ax1.set_ylim([0, 60000])
+
+        elif out_unit == 3065:
+            ax1.set_title('Outdoor unit : {}'.format(out_unit), fontsize=65)
+            ax1.set_xticks([0, 10000, 20000, 30000, 40000])
+            ax1.set_yticks([0, 10000, 20000, 30000, 40000])
+            ax1.set_xlim([0, 40000])
+            ax1.set_ylim([0, 40000])
+
+        if self.comp_num == 1:
+            ax1.scatter(solve[self.target[0]], solve[self.VirtualPower], s=80, alpha=0.5, color='steelblue')
+            ax1.legend(['Compressor 1\n(Rated frequency : {} ($Hz$))'.format(self.freq_rated)], fontsize=47, ncol=1, loc='upper right')
+
             ax1.tick_params(axis="x", labelsize=60)
             ax1.tick_params(axis="y", labelsize=60)
-            ax1.set_xlabel('Virtual Power($W$)', fontsize=65)
-            ax1.set_ylabel('Real Power($W$)', fontsize=65)
+            ax1.set_xlabel('Real Power($W$)', fontsize=65)
+            ax1.set_ylabel('Virtual Power($W$)', fontsize=65)
             # ax1.set_title("Rated Frequency : {} Hz".format(self.freq_rated), fontsize=65)
             ax1.grid()
             plt.tight_layout()
@@ -484,14 +758,11 @@ class REGRESSION_SENSORS():
         elif self.comp_num == 2:
             ax1.scatter(solve[self.target[0]], solve[self.VirtualPower], s=80, alpha=0.5, color='cornflowerblue')
             ax1.legend(['Compressor 2\n(Rated frequency : {} ($Hz$))'.format(self.freq_rated)], fontsize=47, ncol=1, loc='upper right')
-            ax1.set_xticks([0, 5000, 10000, 15000, 20000])
-            ax1.set_yticks([0, 5000, 10000, 15000, 20000])
-            ax1.set_xlim([0, 15000])
-            ax1.set_ylim([0, 15000])
+
             ax1.tick_params(axis="x", labelsize=60)
             ax1.tick_params(axis="y", labelsize=60)
-            ax1.set_xlabel('Virtual Power($W$)', fontsize=65)
-            ax1.set_ylabel('Real Power($W$)', fontsize=65)
+            ax1.set_xlabel('Real Power($W$)', fontsize=65)
+            ax1.set_ylabel('Virtual Power($W$)', fontsize=65)
             # ax1.set_title("Rated Frequency : {} Hz".format(self.freq_rated), fontsize=65)
             ax1.grid()
             plt.tight_layout()
@@ -501,14 +772,11 @@ class REGRESSION_SENSORS():
         elif self.comp_num == 3:
             ax1.scatter(solve[self.target[0]], solve[self.VirtualPower], s=80, alpha=0.5, color='royalblue')
             ax1.legend(['Compressor 1 + 2\n(Rated frequency : {} ($Hz$))'.format(self.freq_rated)], fontsize=47, ncol=1, loc='upper right')
-            ax1.set_xticks([0, 5000, 10000, 15000, 20000])
-            ax1.set_yticks([0, 5000, 10000, 15000, 20000])
-            ax1.set_xlim([0, 15000])
-            ax1.set_ylim([0, 15000])
+
             ax1.tick_params(axis="x", labelsize=60)
             ax1.tick_params(axis="y", labelsize=60)
-            ax1.set_xlabel('Virtual Power($W$)', fontsize=65)
-            ax1.set_ylabel('Real Power($W$)', fontsize=65)
+            ax1.set_xlabel('Real Power($W$)', fontsize=65)
+            ax1.set_ylabel('Virtual Power($W$)', fontsize=65)
             # ax1.set_title("Rated Frequency : {} Hz".format(self.freq_rated), fontsize=65)
             ax1.grid()
             plt.tight_layout()
@@ -523,13 +791,34 @@ class REGRESSION_SENSORS():
         fig = plt.figure(figsize=(20, 20))
         ax1 = fig.add_subplot(1, 1, 1)
 
+        if out_unit == 3066:
+            ax1.set_title('Outdoor unit : {}'.format(out_unit), fontsize=65)
+            ax1.set_xticks([0, 25, 50, 75, 100])
+            ax1.set_yticks([0, 5000, 10000, 15000, 20000])
+            ax1.set_xlim([0, 100])
+            ax1.set_ylim([0, 15000])
+        elif out_unit == 3067:
+            ax1.set_title('Outdoor unit : {}'.format(out_unit), fontsize=65)
+            ax1.set_xticks([0, 25, 50, 75, 100])
+            ax1.set_yticks([0, 20000, 40000, 60000, 80000, 100000])
+            ax1.set_xlim([0, 100])
+            ax1.set_ylim([0, 80000])
+        elif out_unit == 3069:
+            ax1.set_title('Outdoor unit : {}'.format(out_unit), fontsize=65)
+            ax1.set_xticks([0, 25, 50, 75, 100])
+            ax1.set_yticks([0, 20000, 40000, 60000, 80000, 100000])
+            ax1.set_xlim([0, 100])
+            ax1.set_ylim([0, 60000])
+        elif out_unit == 3065:
+            ax1.set_title('Outdoor unit : {}'.format(out_unit), fontsize=65)
+            ax1.set_xticks([0, 25, 50, 75, 100])
+            ax1.set_yticks([0, 10000, 20000, 30000, 40000])
+            ax1.set_xlim([0, 100])
+            ax1.set_ylim([0, 40000])
+
         if self.comp_num == 1:
             ax1.scatter(solve[self.Compfreq[0]], solve[self.target], s=80, alpha=0.5, color='steelblue')
             ax1.legend(['Compressor 1'], fontsize=50, ncol=1, loc='upper right')
-            ax1.set_xticks([0, 25, 50, 75, 100])
-            ax1.set_yticks([0, 1500, 3000, 4500, 6000])
-            ax1.set_xlim([0, 100])
-            ax1.set_ylim([0, 6000])
             ax1.tick_params(axis="x", labelsize=60)
             ax1.tick_params(axis="y", labelsize=60)
             ax1.set_xlabel('Compressor Frequency($Hz$)', fontsize=65)
@@ -542,10 +831,6 @@ class REGRESSION_SENSORS():
         elif self.comp_num == 2:
             ax1.scatter(solve[self.Compfreq[1]], solve[self.target], s=80, alpha=0.5, color='cornflowerblue')
             ax1.legend(['Compressor 2'], fontsize=50, ncol=1, loc='upper right')
-            ax1.set_xticks([0, 25, 50, 75, 100])
-            ax1.set_yticks([0, 1500, 3000, 4500, 6000])
-            ax1.set_xlim([0, 100])
-            ax1.set_ylim([0, 6000])
             ax1.tick_params(axis="x", labelsize=60)
             ax1.tick_params(axis="y", labelsize=60)
             ax1.set_xlabel('Compressor Frequency($Hz$)', fontsize=65)
@@ -556,12 +841,10 @@ class REGRESSION_SENSORS():
             # plt.show()
             plt.clf()
         elif self.comp_num == 3:
+            ax1.set_xticks([0, 50, 100, 150, 200])
+            ax1.set_xlim([0, 200])
             ax1.scatter(solve['comp_frequency_sum'], solve[self.target], s=80, alpha=0.5, color='royalblue')
             ax1.legend(['Compressor 1 & 2'], fontsize=50, ncol=1, loc='upper right')
-            ax1.set_xticks([0, 50, 100, 150, 200])
-            ax1.set_yticks([0, 1500, 3000, 4500, 6000])
-            ax1.set_xlim([0, 200])
-            ax1.set_ylim([0, 6000])
             ax1.tick_params(axis="x", labelsize=60)
             ax1.tick_params(axis="y", labelsize=60)
             ax1.set_xlabel('Compressor Frequency($Hz$)', fontsize=65)
@@ -615,17 +898,34 @@ RVS = REGRESSION_SENSORS(COMP_MODEL_NAME=COMP_MODEL_NAME,
                          start=start,
                          end=end)
 
-for outdv in [3066]: #, 3065, 3067, 3069]:
+for outdv in [3066, 3065, 3067, 3069]: #
     for compN in [1, 2, 3]:
-        RVS.PROCESSING(out_unit=outdv, target=TARGET,
-                       TsucValue=TsucValue,
-                       TdisValue=TdisValue,
-                       compValue=compValue,
-                       freqValue=freqValue,
-                       PsucValue=PsucValue,
-                       PdisValue=PdisValue,
-                       comp_num =compN,
-                       Method=METHOD)
+        if outdv != 3065:
+            print("Outdoor unit : {} Compressor : {}".format(outdv, compN))
+            RVS.PROCESSING(out_unit=outdv, target=TARGET,
+                           TsucValue=TsucValue,
+                           TdisValue=TdisValue,
+                           compValue=compValue,
+                           freqValue=freqValue,
+                           PsucValue=PsucValue,
+                           PdisValue=PdisValue,
+                           comp_num =compN,
+                           Method=METHOD)
+        elif outdv == 3065:
+            if compN >= 2:
+                break
+            else:
+                print("Outdoor unit : {} Compressor : {}".format(outdv, compN))
+                RVS.PROCESSING(out_unit=outdv, target=TARGET,
+                               TsucValue=TsucValue,
+                               TdisValue=TdisValue,
+                               compValue=compValue,
+                               freqValue=freqValue,
+                               PsucValue=PsucValue,
+                               PdisValue=PdisValue,
+                               comp_num=compN,
+                               Method=METHOD)
+
 
     print("Next : {}".format(datetime.datetime.now()))
 print("End : {}".format(datetime.datetime.now()))
