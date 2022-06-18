@@ -178,8 +178,8 @@ class COMPRESSORMAPMODEL():
 
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
-        st = '00:00:00'# 14:50:00
-        et = '23:59:00'# 17:50:00
+        st = '00:00:00'#'11:30:00'
+        et = '23:59:00'#'14:30:00'
         self.gap = 60 # 60
 
         solve = self._outdata
@@ -276,10 +276,7 @@ class COMPRESSORMAPMODEL():
             c_p_air = CP.CoolProp.PropsSI('C', 'P', 101325, 'T', Toa[num] + 273.15, 'Air') / 1000 #1.0035
             rho_air = CP.CoolProp.PropsSI('D', 'P', 101325, 'T', Toa[num] + 273.15, 'Air')
 
-            try:
-                h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
-            except ValueError:
-                h_dis = 0
+            h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
             try:
                 h_condOut = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', TcondOut[num] + 273.15, 'R410A') / 1000
             except ValueError:
@@ -321,10 +318,7 @@ class COMPRESSORMAPMODEL():
         TcondOut = self._outdata[self.CondOutTemp].tolist()  # Double tube temp
         num = 0
         while num < self._outdata.shape[0]:
-            try:
-                h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
-            except ValueError:
-                h_dis = 0
+            h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', (Tdis1[num]+Tdis2[num])/2 + 273.15, 'R410A') / 1000
             try:
                 h_condOut = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', TcondOut[num] + 273.15, 'R410A') / 1000
             except ValueError:
@@ -393,10 +387,7 @@ class COMPRESSORMAPMODEL():
             f_real = (self._outdata[self.freq[0]][num] + self._outdata[self.freq[1]][num])/2
             """Baseline"""
             h_suc = CP.CoolProp.PropsSI('H', 'P', Low_p[num] * 100 * 1000, 'T', Tsuc[num] + 273.15, 'R410A') / 1000  # [kJ/kg]
-            try:
-                h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', ((Tdis1[num] + Tdis2[num]) / 2) + 273.15, 'R410A') / 1000
-            except ValueError:
-                h_dis = 0
+            h_dis = CP.CoolProp.PropsSI('H', 'P', High_p[num] * 100 * 1000, 'T', ((Tdis1[num] + Tdis2[num]) / 2) + 273.15, 'R410A') / 1000
             h_diff = h_dis - h_suc
 
             # 엔탈피 차이가 매우 작은 경우에는 꺼진 것과 다름 없기 때문에
@@ -420,6 +411,7 @@ class COMPRESSORMAPMODEL():
                              * (self.coef_mdotpred[0] + self.coef_mdotpred[1] * (f_real - self.RatedFrequency)
                                 + self.coef_mdotpred[2] * pow((f_real - self.RatedFrequency), 2))
             else:
+                m_dot_pred = 0
                 m_dot_pred = 0
             # 정방향
             if m_dot_pred <= 0:
@@ -528,7 +520,6 @@ class COMPRESSORMAPMODEL():
         return round(error, 2)
 
     """Plotting"""
-
     def PlottingSystem(self, plt_ST, plt_ET, save, out_unit):
         plt.rcParams["font.family"] = "Times New Roman"
         solve = self._outdata.fillna(0)
@@ -721,9 +712,9 @@ class COMPRESSORMAPMODEL():
 
         ax1.set_ylabel('Power', fontsize=28)
 
-        ax1.set_yticks([0, 20, 40, 60])
+        # ax1.set_yticks([0, 20, 40, 60])
 
-        ax1.set_ylim([0, max(solve[self.RealPower].tolist()) * 2])
+        # ax1.set_ylim([0, max(solve[self.RealPower].tolist()) * 2])
 
         ax1.legend(['Real Power($kW$)', 'Virtual Power($kW$)'.format()], fontsize=22,  ncol=2, loc='upper right')
 
@@ -1132,8 +1123,8 @@ class COMPRESSORMAPMODEL():
             print('Error: creating directory. ' + directory)
 
 TIME = 'updated_time'
-start ='2022-01-04' #데이터 시작시간
-end = '2022-01-04' #데이터 끝시간
+start ='2021-12-28' #데이터 시작시간
+end = '2021-12-28' #데이터 끝시간
 
 freqValue = 'comp_current_frequency'
 PdisValue = 'high_pressure'

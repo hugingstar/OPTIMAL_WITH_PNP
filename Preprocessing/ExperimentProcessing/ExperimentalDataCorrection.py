@@ -2,9 +2,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import datetime
 import os
-"""
-이 프로그램은 
-"""
 
 class DataCorrection:
     def __init__(self, TIME, start, end):

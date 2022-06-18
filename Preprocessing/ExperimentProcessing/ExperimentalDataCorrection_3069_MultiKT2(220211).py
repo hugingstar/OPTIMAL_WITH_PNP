@@ -177,6 +177,7 @@ class DataCorrection:
         self.OutIntegDataWithInTemp = self.OutIntegDataWithInTemp.fillna(0)
         self.OutIntegDataWithInTemp.to_csv("{}/OutIntegrationData_withInTemp_{}.csv".format(save, out_unit))
 
+
         """Plot Time Range"""
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
         st = '00:00:00'
@@ -208,7 +209,7 @@ class DataCorrection:
         plt.rcParams["font.family"] = "Times New Roman"
         solve = self.OutIntegDataWithInTemp.fillna(0)
         solve = solve[solve.index >= plt_ST]
-        solve = solve[solve.index <= plt_ET]
+        solve = solve[solve.index < plt_ET]
 
         tt0 = solve.index.tolist()
         tt = []
@@ -216,11 +217,11 @@ class DataCorrection:
             k = str(tt0[i])[8:16]
             tt.append(k)
 
-        fig = plt.figure(figsize=(25, 20))
-        ax1 = fig.add_subplot(5, 1, 1)
-        ax2 = fig.add_subplot(5, 1, 2)
-        ax3 = fig.add_subplot(5, 1, 3)
-        ax4 = fig.add_subplot(5, 1, 4)
+        fig = plt.figure(figsize=(25, 24))
+        ax1 = fig.add_subplot(4, 1, 1)
+        ax2 = fig.add_subplot(4, 1, 2)
+        ax3 = fig.add_subplot(4, 1, 3)
+        ax4 = fig.add_subplot(4, 1, 4)
         ax6 = ax1.twinx()
         ax7 = ax2.twinx()
 
@@ -230,7 +231,7 @@ class DataCorrection:
 
         #Inlet
         cd_col_list = []
-        for _ in [2, 3]:
+        for _ in [1, 2, 3]:
             cd_col_list.append('condout{}'.format(_))
             #가장 큰것 :
             ax4.plot(tt, solve['condout{}'.format(_)].tolist(), 'r', alpha=0.2, linewidth='3', drawstyle='steps-post')
@@ -243,7 +244,7 @@ class DataCorrection:
 
         # Outlet
         cd_col_list = []
-        for _ in [1, 2, 4, 5]:
+        for _ in [1, 2, 5, 9]:
             cd_col_list.append('point{}'.format(_))
             #가장 큰 것 : 19
             ax4.plot(tt, solve['point{}'.format(_)].tolist(), 'k', alpha=0.2, linewidth='2', drawstyle='steps-post')
@@ -322,7 +323,7 @@ class DataCorrection:
         plt.rcParams["font.family"] = "Times New Roman"
         solve = self._indata.fillna(0)
         solve = solve[solve.index >= plt_ST]
-        solve = solve[solve.index <= plt_ET]
+        solve = solve[solve.index < plt_ET]
 
         tt0 = solve.index.tolist()
         tt = []
@@ -330,11 +331,11 @@ class DataCorrection:
             k = str(tt0[i])[8:16]
             tt.append(k)
 
-        fig = plt.figure(figsize=(25, 20))
-        ax1 = fig.add_subplot(5, 1, 1)
-        ax2 = fig.add_subplot(5, 1, 2)
-        ax3 = fig.add_subplot(5, 1, 3)
-        ax4 = fig.add_subplot(5, 1, 4)
+        fig = plt.figure(figsize=(25, 24))
+        ax1 = fig.add_subplot(4, 1, 1)
+        ax2 = fig.add_subplot(4, 1, 2)
+        ax3 = fig.add_subplot(4, 1, 3)
+        ax4 = fig.add_subplot(4, 1, 4)
         # ax5 = fig.add_subplot(5, 1, 5)
         ax6 = ax1.twinx()
 
@@ -410,7 +411,7 @@ class DataCorrection:
         plt.rcParams["font.family"] = "Times New Roman"
         solve = self.OutIntegDataWithOutTemp.fillna(0)
         solve = solve[solve.index >= plt_ST]
-        solve = solve[solve.index <= plt_ET]
+        solve = solve[solve.index < plt_ET]
 
         tt0 = solve.index.tolist()
         tt = []
@@ -418,11 +419,11 @@ class DataCorrection:
             k = str(tt0[i])[8:16]
             tt.append(k)
 
-        fig = plt.figure(figsize=(25, 20))
-        ax1 = fig.add_subplot(5, 1, 1)
-        ax2 = fig.add_subplot(5, 1, 2)
-        ax3 = fig.add_subplot(5, 1, 3)
-        ax4 = fig.add_subplot(5, 1, 4)
+        fig = plt.figure(figsize=(25, 24))
+        ax1 = fig.add_subplot(4, 1, 1)
+        ax2 = fig.add_subplot(4, 1, 2)
+        ax3 = fig.add_subplot(4, 1, 3)
+        ax4 = fig.add_subplot(4, 1, 4)
         ax6 = ax1.twinx()
         ax7 = ax2.twinx()
 
@@ -432,7 +433,7 @@ class DataCorrection:
 
         #Outdoor unit Inlet
         cd_col_list = []
-        for _ in [1, 2, 12, 23]:# 2, 3, 4, 5, 7, 8, 9]: #outlet 1~10
+        for _ in  [1, 2, 3, 4]:# 2, 3, 4, 5, 7, 8, 9]: #outlet 1~10
             cd_col_list.append('point{}'.format(_))
             #가장 큰것 :
             ax4.plot(tt, solve['point{}'.format(_)].tolist(), 'k', alpha=0.2, linewidth='3', drawstyle='steps-post')
@@ -445,7 +446,7 @@ class DataCorrection:
 
         # Outdoor unit Outlet
         cd_col_list = []
-        for _ in [3, 4, 6, 8]:
+        for _ in [2, 3, 4, 7]:
             cd_col_list.append('condout{}'.format(_))
             #가장 큰 것 : 19
             ax4.plot(tt, solve['condout{}'.format(_)].tolist(), 'b', alpha=0.2, linewidth='2', drawstyle='steps-post')
@@ -523,9 +524,9 @@ class DataCorrection:
     def PlottingOutdoorSystem(self, plt_ST, plt_ET, save, out_unit):
         plt.rcParams["font.family"] = "Times New Roman"
         # 측정을 하지 않은 곳은 다 0으로 입력하였다.
-        solve = self.OutIntegData.fillna(0)
+        solve = self.OutIntegData #.fillna(0)
         solve = solve[solve.index >= plt_ST]
-        solve = solve[solve.index <= plt_ET]
+        solve = solve[solve.index < plt_ET]
 
         tt0 = solve.index.tolist()
         tt = []
@@ -533,15 +534,15 @@ class DataCorrection:
             k = str(tt0[i])[8:16]
             tt.append(k)
 
-        fig = plt.figure(figsize=(25, 20))
-        ax1 = fig.add_subplot(5, 1, 1)
-        ax2 = fig.add_subplot(5, 1, 2)
-        ax3 = fig.add_subplot(5, 1, 3)
-        ax4 = fig.add_subplot(5, 1, 4)
-        ax5 = fig.add_subplot(5, 1, 5)
-        ax6 = ax1.twinx()
-        ax7 = ax2.twinx()
-        ax8 = ax3.twinx()
+        fig = plt.figure(figsize=(25, 40))
+        ax1 = fig.add_subplot(8, 1, 1)
+        ax2 = fig.add_subplot(8, 1, 2)
+        ax3 = fig.add_subplot(8, 1, 3)
+        ax4 = fig.add_subplot(8, 1, 4)
+        ax5 = fig.add_subplot(8, 1, 5)
+        ax6 = fig.add_subplot(8, 1, 6)
+        ax7 = fig.add_subplot(8, 1, 7)
+        ax8 = fig.add_subplot(8, 1, 8)
 
         ax1.plot(tt, solve['total_indoor_capa'].tolist(), 'g-', linewidth='2', drawstyle='steps-post')
         ax2.plot(tt, solve['fan_step'].tolist(), 'k--', linewidth='2', drawstyle='steps-post')
@@ -559,69 +560,79 @@ class DataCorrection:
         ax8.plot(tt, solve['discharge_temp2'].tolist(), 'g-', linewidth='2', drawstyle='steps-post', alpha=0.8)
         ax8.plot(tt, solve['suction_temp1'].tolist(), 'b--', linewidth='2', drawstyle='steps-post')
 
-        gap = self.gap # 09~18 : 120
+        gap = self.gap  # 09~18 : 120
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax2.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax3.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax4.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
         ax5.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax6.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax7.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
+        ax8.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
 
-        ax1.tick_params(axis="x", labelsize=22)
-        ax2.tick_params(axis="x", labelsize=22)
-        ax3.tick_params(axis="x", labelsize=22)
-        ax4.tick_params(axis="x", labelsize=22)
-        ax5.tick_params(axis="x", labelsize=22)
+        ax1.tick_params(axis="x", labelsize=24)
+        ax2.tick_params(axis="x", labelsize=24)
+        ax3.tick_params(axis="x", labelsize=24)
+        ax4.tick_params(axis="x", labelsize=24)
+        ax5.tick_params(axis="x", labelsize=24)
+        ax6.tick_params(axis="x", labelsize=24)
+        ax7.tick_params(axis="x", labelsize=24)
+        ax8.tick_params(axis="x", labelsize=24)
 
-        ax1.tick_params(axis="y", labelsize=22)
-        ax2.tick_params(axis="y", labelsize=22)
-        ax3.tick_params(axis="y", labelsize=22)
-        ax4.tick_params(axis="y", labelsize=22)
-        ax5.tick_params(axis="y", labelsize=22)
-        ax6.tick_params(axis="y", labelsize=22)
-        ax7.tick_params(axis="y", labelsize=22)
-        ax8.tick_params(axis="y", labelsize=22)
+        ax1.tick_params(axis="y", labelsize=24)
+        ax2.tick_params(axis="y", labelsize=24)
+        ax3.tick_params(axis="y", labelsize=24)
+        ax4.tick_params(axis="y", labelsize=24)
+        ax5.tick_params(axis="y", labelsize=24)
+        ax6.tick_params(axis="y", labelsize=24)
+        ax7.tick_params(axis="y", labelsize=24)
+        ax8.tick_params(axis="y", labelsize=24)
 
-        ax1.set_ylabel('Total Capacity', fontsize=26)
-        ax2.set_ylabel('Fan Steps', fontsize=26)
-        ax3.set_ylabel('EEV', fontsize=26)
-        ax4.set_ylabel('Pressure', fontsize=26)
-        ax5.set_ylabel('Power', fontsize=26)
-        ax6.set_ylabel('Compressor Signal', fontsize=26)
-        ax7.set_ylabel('Frequency', fontsize=26)
-        ax8.set_ylabel('Temperature', fontsize=26)
+        ax1.set_ylabel('Total Capacity', fontsize=28)
+        ax2.set_ylabel('Fan Steps', fontsize=28)
+        ax3.set_ylabel('EEV', fontsize=28)
+        ax4.set_ylabel('Pressure', fontsize=28)
+        ax5.set_ylabel('Power', fontsize=28)
+        ax6.set_ylabel('Compressor Signal', fontsize=28)
+        ax7.set_ylabel('Frequency', fontsize=28)
+        ax8.set_ylabel('Temperature', fontsize=28)
 
-        ax5.set_xlabel('Time', fontsize=26)
+        ax8.set_xlabel('Time', fontsize=28)
 
-        ax1.set_yticks([0, 250, 500, 750, 1000])
+        ax1.set_yticks([0, 250, 500, 750, 1000, 1250, 1500, 1750, 2000])
         ax2.set_yticks([0, 25, 50, 75, 100])
-        ax3.set_yticks([0, 1000, 2000, 3000])
-        ax4.set_yticks([0, 10, 20, 30, 40])
-        ax5.set_yticks([0, 10000, 20000, 30000])
+        ax3.set_yticks([0, 500, 1000, 1500, 2000, 2500, 3000])
+        ax4.set_yticks([0, 10, 20, 30, 40, 50])
+        ax5.set_yticks([0, 10000, 20000, 30000, 40000, 50000])
         ax6.set_yticks([0, 1])
-        ax7.set_yticks([0, 50, 100])
+        ax7.set_yticks([0, 25, 50, 75, 100])
         ax8.set_yticks([0, 25, 50, 75, 100])
 
-        ax1.set_ylim([-500, max(solve['total_indoor_capa'].tolist()) * 1.5])
-        ax2.set_ylim([-75, max(solve['fan_step'].tolist()) * 2])
-        ax3.set_ylim([-4000, max(solve['eev1'].tolist()) * 1.2])
+        ax1.set_ylim([0, max(solve['total_indoor_capa'].tolist()) * 1.1])
+        ax2.set_ylim([0, 100])
+        ax3.set_ylim([0, max(solve['eev1'].tolist()) * 1.2])
         ax4.set_ylim([0, max(solve['high_pressure'].tolist()) * 1.5])
-        ax5.set_ylim([0, max(solve['value'].tolist()) * 1.1])
-        ax6.set_ylim([0, 5])
-        ax7.set_ylim([0, max(solve['comp_current_frequency1'].tolist()) * 3.5])
-        ax8.set_ylim([-25, max(solve['discharge_temp1'].tolist()) * 3.5])
+        ax5.set_ylim([0, max(solve['value'].tolist()) * 1.5])
+        ax6.set_ylim([0, 2])
+        ax7.set_ylim([0, 100])
+        ax8.set_ylim([-10, max(solve['discharge_temp1'].tolist()) * 1.5])
 
         ax1.legend(['Total indoor capacity'], fontsize=18)
         ax2.legend(['Fan Steps'], fontsize=18, loc='upper right')
         ax3.legend(['Expansion value Opening'], fontsize=18)
         ax4.legend(['High Pressure', 'Low Pressure'], fontsize=18, loc='upper right', ncol=2)
         ax5.legend(['Power'], fontsize=18)
-        ax8.legend(['Discharge Temperature 1','Discharge Temperature 2', 'Suction Temperature'], fontsize=18, loc='center right', ncol=2)
+        ax8.legend(['Discharge Temperature 1', 'Discharge Temperature 2', 'Suction Temperature'], fontsize=18,
+                   loc='upper right', ncol=3)
 
         ax1.autoscale(enable=True, axis='x', tight=True)
         ax2.autoscale(enable=True, axis='x', tight=True)
         ax3.autoscale(enable=True, axis='x', tight=True)
         ax4.autoscale(enable=True, axis='x', tight=True)
         ax5.autoscale(enable=True, axis='x', tight=True)
+        ax6.autoscale(enable=True, axis='x', tight=True)
+        ax7.autoscale(enable=True, axis='x', tight=True)
+        ax8.autoscale(enable=True, axis='x', tight=True)
 
         ax1.grid()
         ax2.grid()
@@ -634,7 +645,7 @@ class DataCorrection:
 
         plt.tight_layout()
         plt.savefig("{}/OutdoorSystem_Outdoor_{}.png".format(save, out_unit))
-        # # plt.show()
+        # plt.show()
         plt.clf()
 
     def create_folder(self, directory):
@@ -650,8 +661,8 @@ class DataCorrection:
             print('Error: creating directory. ' + directory)
 
 TIME = 'updated_time'
-start ='2022-02-09' #데이터 시작시간
-end = '2022-02-09' #데이터 끝시간
+start ='2022-02-11' #데이터 시작시간
+end = '2022-02-11' #데이터 끝시간
 
 DC = DataCorrection(TIME=TIME, start=start, end=end)
 for i in [3069]:

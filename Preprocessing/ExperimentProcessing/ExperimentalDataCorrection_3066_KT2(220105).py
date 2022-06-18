@@ -123,19 +123,19 @@ class DataCorrection:
         self.IntegOutdoorVelocity.to_csv("{}/Outdoor_{}_Measure_OutdoorVelocity.csv".format(save, out_unit))
 
         #Outdoor Volume1
-        # self._outVolumePath = "{}/{}/{}{} volume1.csv".format(self.DATA_PATH, self.folder_name, self.start_month, self.start_date)
-        # self._outVolumeData = pd.read_csv(self._outVolumePath)
-        # self.col = list(pd.Series(list(self._outVolumeData.columns))[
-        #                      pd.Series(list(self._outVolumeData.columns)).str.contains(pat='Time', case=False)])
-        # self._outVolumeData = self._outVolumeData.rename(columns={self.col[0]: self.TIME, 'volume' : 'outdoor_volume'})
-        # self._outVolumeData['Date'] = self.folder_name
-        # self._outVolumeData[self.TIME] = self._outVolumeData[['Date', self.TIME]].apply(' '.join, axis=1)
-        # self._outVolumeData.drop(columns=['Date'], inplace=True)
-        # self._outVolumeData[self.TIME] = pd.to_datetime(self._outVolumeData[self.TIME])
-        # self._outVolumeData[self._outVolumeData['outdoor_volume'] < 0] = None
-        # self._outVolumeData.fillna(method='ffill', inplace=True)
-        # self._outVolumeData.set_index(self.TIME, inplace=True)
-        # self._outVolumeData = self._outVolumeData.resample('1T').mean()
+        self._outVolumePath = "{}/{}/{}{} volume1.csv".format(self.DATA_PATH, self.folder_name, self.start_month, self.start_date)
+        self._outVolumeData = pd.read_csv(self._outVolumePath)
+        self.col = list(pd.Series(list(self._outVolumeData.columns))[
+                             pd.Series(list(self._outVolumeData.columns)).str.contains(pat='Time', case=False)])
+        self._outVolumeData = self._outVolumeData.rename(columns={self.col[0]: self.TIME, 'volume' : 'outdoor_volume'})
+        self._outVolumeData['Date'] = self.folder_name
+        self._outVolumeData[self.TIME] = self._outVolumeData[['Date', self.TIME]].apply(' '.join, axis=1)
+        self._outVolumeData.drop(columns=['Date'], inplace=True)
+        self._outVolumeData[self.TIME] = pd.to_datetime(self._outVolumeData[self.TIME])
+        self._outVolumeData[self._outVolumeData['outdoor_volume'] < 0] = None
+        self._outVolumeData.fillna(method='ffill', inplace=True)
+        self._outVolumeData.set_index(self.TIME, inplace=True)
+        self._outVolumeData = self._outVolumeData.resample('1T').mean()
 
         #Outdoor Volume2
         # self._outVolumePath2 = "{}/{}/{}{} volume2.csv".format(self.DATA_PATH, self.folder_name, self.start_month, self.start_date)
@@ -152,8 +152,8 @@ class DataCorrection:
         # self._outVolumeData2.set_index(self.TIME, inplace=True)
         # self._outVolumeData2 = self._outVolumeData2.resample('1T').mean()
 
-        # self.IntegOutdoorVolume = pd.concat([self._outVolumeData], axis=0)
-        # self.IntegOutdoorVolume.to_csv("{}/Outdoor_{}_Measure_OutdoorVolume.csv".format(save, out_unit))
+        self.IntegOutdoorVolume = pd.concat([self._outVolumeData], axis=0)
+        self.IntegOutdoorVolume.to_csv("{}/Outdoor_{}_Measure_OutdoorVolume.csv".format(save, out_unit))
 
         #Outdoor Temperature Measurement
         self._outTempPath = "{}/{}/{}{} temp1.csv".format(self.DATA_PATH, self.folder_name, self.start_month, self.start_date)
@@ -178,7 +178,7 @@ class DataCorrection:
         self.IntegTemp.to_csv("{}/Outdoor_{}_Measure_OutdoorTemp.csv".format(save, out_unit))
 
         self.OutIntegData = self._outunitData.join(self.IntegOutdoorVelocity, how='left')
-        # self.OutIntegData = self.OutIntegData.join(self.IntegOutdoorVolume, how='left')
+        self.OutIntegData = self.OutIntegData.join(self.IntegOutdoorVolume, how='left')
         self.OutIntegData = self.OutIntegData.join(self.IntegTemp, how='left')
 
         # self.OutIntegData = self.OutIntegData.fillna(0)
@@ -214,14 +214,14 @@ class DataCorrection:
         ax1 = fig.add_subplot(3, 1, 1)
         ax2 = fig.add_subplot(3, 1, 2)
         ax3 = fig.add_subplot(3, 1, 3)
-        # ax4 = ax1.twinx()
+        ax4 = ax1.twinx()
 
         ax1.plot(tt, solve['outdoor_velocity'].tolist(), 'r-', linewidth='2', drawstyle='steps-post')
         ax2.plot(tt, solve['fan_step'].tolist(), 'k', linewidth='2', drawstyle='steps-post')
 
         # Inlet
         cd_col_list = []
-        for _ in [2, 10, 11, 17]:
+        for _ in [1, 10, 15]:
             cd_col_list.append('point{}'.format(_))
             ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'k', alpha=0.2, linewidth='2', drawstyle='steps-post')
         avg_temp_list = solve[cd_col_list].mean(axis=1)
@@ -233,7 +233,7 @@ class DataCorrection:
 
         # Outlet
         cd_col_list = []
-        for _ in [21, 22, 23, 24]:
+        for _ in [21, 22, 24, 25]:
             cd_col_list.append('point{}'.format(_))
             # 가장 큰 것 : 19
             ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'b', alpha=0.2, linewidth='2', drawstyle='steps-post')
@@ -244,12 +244,12 @@ class DataCorrection:
         df2.to_csv("{}/Outdoor_{}_outlet_AvgTemp.csv".format(save, out_unit))
         print(df2)
 
-        # ax4.plot(tt, solve['outdoor_volume'].tolist(), 'b--', linewidth='2', drawstyle='steps-post')
+        ax4.plot(tt, solve['outdoor_volume'].tolist(), 'b--', linewidth='2', drawstyle='steps-post')
 
         ax1.legend(['Air Velocity ({})'.format('$m/s$')], fontsize=18, loc='upper left')
         ax2.legend(['Fans steps'], fontsize=18, loc='upper left')
         ax3.legend(handles=[lineavg1, lineavg2], fontsize=18, loc='upper left')
-        # ax4.legend(['Air Volume Rate($m^{3}/h$)'], fontsize=18, loc='upper right')
+        ax4.legend(['Air Volume Rate($m^{3}/h$)'], fontsize=18, loc='upper right')
 
         gap = self.gap   # 09~18 : 120
         ax1.set_xticks([tt[i] for i in range(len(tt)) if i % gap == 0 or tt[i] == tt[-1]])
@@ -264,24 +264,24 @@ class DataCorrection:
         ax1.tick_params(axis="y", labelsize=24)
         ax2.tick_params(axis="y", labelsize=24)
         ax3.tick_params(axis="y", labelsize=24)
-        # ax4.tick_params(axis="y", labelsize=24)
+        ax4.tick_params(axis="y", labelsize=24)
 
         ax1.set_ylabel('Air Velocity', fontsize=28)
         ax2.set_ylabel('Fan steps', fontsize=28)
         ax3.set_ylabel('Temperature', fontsize=28)
-        # ax4.set_ylabel('Air Volume Rate', fontsize=28)
+        ax4.set_ylabel('Air Volume Rate', fontsize=28)
 
         ax3.set_xlabel('Time', fontsize=28)
 
         ax1.set_yticks([0, 1, 2, 3, 4, 5])
         ax2.set_yticks([0, 10, 20, 30, 40, 50, 60])
-        ax3.set_yticks([-15,-10, -5, 0, 5, 10, 15, 20])
-        # ax4.set_yticks([0, 1000, 2000, 3000, 4000, 5000])
+        ax3.set_yticks([-10, -5, 0, 5, 10, 15, 20, 25, 30])
+        ax4.set_yticks([0, 1000, 2000, 3000, 4000, 5000])
 
         ax1.set_ylim([0, 5])
         ax2.set_ylim([0, 60])
-        ax3.set_ylim([-15, 20])
-        # ax4.set_ylim([0, 5000])
+        ax3.set_ylim([-10, 30])
+        ax4.set_ylim([0, 5000])
 
         ax1.autoscale(enable=True, axis='x', tight=True)
         ax2.autoscale(enable=True, axis='x', tight=True)
@@ -436,8 +436,8 @@ class DataCorrection:
             print('Error: creating directory. ' + directory)
 
 TIME = 'updated_time'
-start ='2021-12-30' #데이터 시작시간
-end = '2021-12-30' #데이터 끝시간
+start ='2022-01-05' #데이터 시작시간
+end = '2022-01-05' #데이터 끝시간
 
 DC = DataCorrection(TIME=TIME, start=start, end=end)
 for i in [3066]:

@@ -216,12 +216,13 @@ class DataCorrection:
         ax3 = fig.add_subplot(3, 1, 3)
         ax4 = ax1.twinx()
 
+
         ax1.plot(tt, solve['outdoor_velocity'].tolist(), 'r-', linewidth='2', drawstyle='steps-post')
         ax2.plot(tt, solve['fan_step'].tolist(), 'k', linewidth='2', drawstyle='steps-post')
 
         # Inlet
         cd_col_list = []
-        for _ in [21, 22, 24, 25]:
+        for _ in [3, 13]:
             cd_col_list.append('point{}'.format(_))
             ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'k', alpha=0.2, linewidth='2', drawstyle='steps-post')
         avg_temp_list = solve[cd_col_list].mean(axis=1)
@@ -233,7 +234,7 @@ class DataCorrection:
 
         # Outlet
         cd_col_list = []
-        for _ in [1, 10, 15]:
+        for _ in [21]:
             cd_col_list.append('point{}'.format(_))
             # 가장 큰 것 : 19
             ax3.plot(tt, solve['point{}'.format(_)].tolist(), 'b', alpha=0.2, linewidth='2', drawstyle='steps-post')
@@ -259,7 +260,6 @@ class DataCorrection:
         ax1.tick_params(axis="x", labelsize=24)
         ax2.tick_params(axis="x", labelsize=24)
         ax3.tick_params(axis="x", labelsize=24)
-
 
         ax1.tick_params(axis="y", labelsize=24)
         ax2.tick_params(axis="y", labelsize=24)
@@ -436,8 +436,8 @@ class DataCorrection:
             print('Error: creating directory. ' + directory)
 
 TIME = 'updated_time'
-start ='2022-01-05' #데이터 시작시간
-end = '2022-01-05' #데이터 끝시간
+start ='2022-01-06' #데이터 시작시간
+end = '2022-01-06' #데이터 끝시간
 
 DC = DataCorrection(TIME=TIME, start=start, end=end)
 for i in [3066]:

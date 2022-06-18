@@ -2,9 +2,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import datetime
 import os
-"""
-이 프로그램은 
-"""
 
 class DataCorrection:
     def __init__(self, TIME, start, end):
@@ -70,7 +67,7 @@ class DataCorrection:
         self.col = list(pd.Series(list(self._outunitData.columns))[
                              pd.Series(list(self._outunitData.columns)).str.contains(pat='value', case=False)]) # 전력
         self._outunitData[self._outunitData[self.col] < 0] = None
-        # self._outunitData.fillna(method='ffill', inplace=True)
+        # self._outunitData.fillna(method='ffill', inplace=True) #선택적 옵션
         self._outunitData.to_csv("{}/Outdoor_{}.csv".format(save, out_unit))
 
         self.OutIntegData = self._outunitData
@@ -84,14 +81,22 @@ class DataCorrection:
         # 그림 그릴 부분의 시작시간(plt_ST) - 끝시간(plt_ET)
         st = '2022-02-01 00:00:00' #'11:00:00'
         et = '2022-02-28 23:59:00' #'14:31:00'
-        self.gap = 9000
-        # Plotting
+        self.gap = 9000 #x축 간격
 
+        # Plotting System
         # self.PlottingOutdoorSystem(plt_ST=self.start + ' ' + st, plt_ET=self.end + ' ' + et, save=save, out_unit=out_unit)
 
         self.PlottingOutdoorSystem(plt_ST=st, plt_ET=et, save=save, out_unit=out_unit)
 
     def PlottingOutdoorSystem(self, plt_ST, plt_ET, save, out_unit):
+        """
+        biot 데이터를 그리는 함수
+        :param plt_ST: 그림 그릴 시작시간
+        :param plt_ET: 그림 그릴 끝시간
+        :param save: 저장
+        :param out_unit: 실외기 번호
+        :return: 그림 저장되고 따로 리턴값은 없음
+        """
         plt.rcParams["font.family"] = "Times New Roman"
         # 측정을 하지 않은 곳은 다 0으로 입력하였다.
         solve = self.OutIntegData.fillna(0)
